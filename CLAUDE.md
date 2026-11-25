@@ -1,6 +1,6 @@
 # FMY262 (FM-1 OPL3 트래커)
 
-M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건반)용 커스텀 펌웨어로 만들 **OPL3(YMF262) 트래커**. 앱 이름은 **FMY262**(칩 이름에서), 지은이 표기 "by Mr. Tracy Evans", 버전 **V0.8.1**(아래 "버전").
+M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건반)용 커스텀 펌웨어로 만들 **OPL3(YMF262) 트래커**. 앱 이름은 **FMY262**(칩 이름에서), 지은이 표기 "by Mr. Tracy Evans", 버전 **V0.8.2**(아래 "버전").
 지금은 브라우저 프로토타입이 완성된 상태이고, 다음 단계는 실기 이식이다. 대화는 한국어로 한다.
 
 ## 폴더
@@ -14,7 +14,7 @@ M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건�
 | `web/presets.js` | 34개 팩토리 프리셋 |
 | `web/font.js` | 5×7 비트맵 글꼴(6px 간격) |
 | `web/opl3fn.js` | **DBOPL**(기기와 같은 SPEC+PRE, 44.1kHz, 채널별 파형 캡처 `opl_scope_on/opl_scope`) → wasm → wasm2js 결과(`makeOPL()`); `opl3/wrap_dbopl.c` + `opl3/build-dbopl-wasm.sh`(`npm run build:dbopl`)로 다시 만든다. 예전 Nuked판은 `web/nukedfn.js`(`opl3/build-wasm.sh`) |
-| `web/rad.js` | RAD(Reality AdLib Tracker v1.0/v2.1) 가져오기 `importRAD`/`isRAD`: 틱 단위로 RAD 재생을 흉내 내(리프·악기 리프·전치·중첩 8단) 사건을 모은 뒤 패턴에 펼침(리프는 펼쳐 넣음, 자리마다 패턴 하나 → 같은 것은 합침). 트랙 A = TA[c](2OP·4OP 꼬리), 둘로 나뉜 알고리즘 4–6은 TB[c]에 두 번째 소리. RAD 음 표는 평균율보다 9.8센트 낮아 악기 ft에 반영, 행 중간 키오프 = 노트 컷(36 3x), 늦은 음 = 노트 딜레이(36 2x), 악기 없는 음 = 레가토(3 FF). 못 넣는 것은 `warn`(MIDI 악기, M/U, 한 행에 두 음, 넘친 이펙트). 워크벤치 곡 탭·프로토타입 USB 받기에서 .a2m과 함께 받음. 시험 곡은 `vendor/rad/`(git 밖, AdPlug 저장소의 5곡 + 참고용 rad2.cpp) |
+| `web/rad.js` | RAD(Reality AdLib Tracker v1.0/v2.1) 가져오기 `importRAD`/`isRAD`: 틱 단위로 RAD 재생을 흉내 내(리프·악기 리프·전치·중첩 8단) 사건을 모은 뒤 패턴에 펼침(리프는 펼쳐 넣음, 자리마다 패턴 하나 → 같은 것은 합침). 트랙 A = TA[c](2OP·4OP 꼬리), 둘로 나뉜 알고리즘 4–6은 TB[c]에 두 번째 소리. RAD 음 표는 평균율보다 9.8센트 낮음(AT2와 같은 AdLib 표 → 엔진 A4 437.52Hz로 해결, ft에 따로 안 넣음), 행 중간 키오프 = 노트 컷(36 3x), 늦은 음 = 노트 딜레이(36 2x), 악기 없는 음 = 레가토(3 FF). 못 넣는 것은 `warn`(MIDI 악기, M/U, 한 행에 두 음, 넘친 이펙트). 워크벤치 곡 탭·프로토타입 USB 받기에서 .a2m과 함께 받음. 시험 곡은 `vendor/rad/`(git 밖, AdPlug 저장소의 5곡 + 참고용 rad2.cpp) |
 | `web/songfile.js` | 곡 파일 "FMY1"의 JS판(`fmyWrite`/`fmyRead`, C `songfile.c`와 같은 바이트) |
 | `web/workbench.html` | 워크벤치 사이트 첫 화면: 탭 실행(펌웨어를 브라우저에서 돌리는 에뮬레이터 `emu/`), 곡(에뮬레이터 또는 USB의 FM-1 슬롯 ↔ A2M·RAD/.fmy; 데모 곡 버튼은 0.8.1 배포 뒤 뺌), 펌웨어 설치(fm1-base 설치 페이지), 도움말. `npm run workbench` → `dist/workbench/`(firmware/tracker/tools/make_workbench.py), `npm run serve`로 127.0.0.1:8262. 문구는 영문 우선, 한/영 토글(`TEXT.en/ko`, localStorage `fmy262-wb-lang`). 설치 탭의 페이지는 make_workbench.py `installer()`가 fm1-base 원본을 고쳐 씀: 일본어 표 → `installer_ko.js`, 언어는 워크벤치만 바꿈(페이지 자체 토글은 숨김, `?lang=`·postMessage), 백업 문구는 "your FM-1", 색은 AdLib Tracker II의 파랑(워크벤치·실행 탭 에뮬레이터 `emu_page()`도 같은 파랑; 바뀐 원본이면 빌드가 멈춤). 스톡 펌웨어: `vendor/stock/FM-1.fwsc`(git 밖)가 fm1-base가 아는 체크섬(V15/V16)이면 `firmware/FM-1-stock.fwsc`로 실어 페이지가 스스로 읽고 버튼 하나로 설치, 없으면 예전처럼 내려받아 고르는 단계. 단독판 `dist/fmy262-workbench.html`도 만들어짐. 공개판(`FMY_PUBLIC=1`, `tools/release.sh`)에는 스톡 펌웨어를 넣지 않음(M-VAVE 것이라 재배포 불가), `FMY_REPO`면 설치 페이지에 저장소 링크 |
 | `web/build.cjs` | 위 파일들을 합쳐 `dist/fm1-opl3-tracker.html`과 `dist/fmy262-workbench.html` 생성 |
@@ -51,14 +51,16 @@ M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건�
 | 0.5 | 화면 C 이식, 트래커 앱(t44). .1 HOME+PRESETS 한 채널, .2 이름·시작 화면·INFO·노브 배치, .3 저장 슬롯(t45), .4 새 곡 |
 | 0.6 | USB 슬롯 전송, A2M 워크벤치(t46). .1 웹도 DBOPL, 워크벤치 에뮬레이터·곡·설치 탭(t47) |
 | 0.7 | 파형 화면. .1 워크벤치 한/영·설치 페이지 한국어·블루·3CH TRACK, .2 스톡 펌웨어 내장·전체 블루, .3 RUN 타이틀 삭제·에뮬레이터 버튼 블루·노브 원 삭제, .4 설정 메뉴 기기 구현·CPU LOAD, .5 건반(커서 음 입력, LED)·INFO에서 Nuked 삭제 |
-| 0.8 | 두 코어(DBOPL 뱅크 1을 2번 코어에서, t47 두 코어 대 한 코어). .1 RAD 가져오기(t48 AdPlug 비교) |
+| 0.8 | 두 코어(DBOPL 뱅크 1을 2번 코어에서, t47 두 코어 대 한 코어). .1 RAD 가져오기(t48 AdPlug 비교), 첫 공개 배포. .2 AT2 재생 맞춤(A2M 키오프 0xFF, 볼륨 스케일링 끔 vdir, A4 437.52Hz, 비브라토 표 규칙, 키오프 뒤 톤 포르타) |
 
 ## 데이터 모델 (song)
 
 - `rows`(16–256), `order[]`(0–7F 패턴, 80h+n = n번 위치로 점프), `patterns[]`(최대 128, 각 행 20트랙)
 - 셀 `[note, ins, fx1, fx1val, fx2, fx2val]` — note: MIDI 번호, -1 빈칸, -2 키오프. fx = AT2 ef_ 번호(0–47), -1 없음. **볼륨 칸 없음**(AT2와 같이 Cxx)
 - `inst[]`(최대 255): `op[2]`(am vib egt ksr mult ksl tl ar dr sl rr ws), fb, con, pan(0 L/1 C/2 R), ft(센트), arpT, vibT, `four`(4OP 첫 악기), `fmm`(FM 레지스터 매크로), `pv`
-- `arp[16] / vib[16]` 매크로 표(16칸), `bpm, speed, lfo(bit1 AM깊이, bit0 VIB깊이), opl(2|3), perc, four(4OP 쌍 비트 6개), gvol, vtab, mspd`
+- `arp[16] / vib[16]` 매크로 표(16칸), `bpm, speed, lfo(bit1 AM깊이, bit0 VIB깊이), opl(2|3), perc, four(4OP 쌍 비트 6개), gvol, vtab, mspd, vdir`
+- `vdir` = 1이면 AT2 "볼륨 스케일링 꺼짐": 볼륨이 곧 오퍼레이터 레벨(63−TL), 음 시작 볼륨 = 악기 TL(4OP는 AT2처럼 늘 스케일). 0(기본) = 볼륨이 악기 TL을 비율로 줄임. A2M 플래그 bit 7(FM1X +916에 0xA0|vdir 표시, 표시 없는 옛 FMY262 A2M은 0), FMY1은 vdir일 때만 판 2(머리 끝 1바이트). 화면에서 바꾸는 곳은 아직 없음
+- 음높이 기준 A4 = 437.52Hz(AT2·RAD의 AdLib 음 표 평균, 440보다 9.81센트 낮음; engine.js·eng.c)
 - 트랙 → OPL 채널 배치는 AT2 표(`_chmm_*`, `_chpm_*`)를 그대로 쓴다(engine.js `MM`/`PM`). 4OP 쌍: 트랙 1+2, 3+4, 5+6, 10+11, 12+13, 14+15. 퍼커션: 트랙 16–20 = BD SD TT CY HH
 - 4OP 악기: N(=four)이 OP3/OP4(쌍의 첫 트랙), N+1이 OP1/OP2. 연결 이름은 AT2 매뉴얼 기준(conn = (N.con<<1)|(N+1).con; 0 FM/FM, 2 FM/AM, 1 AM/FM, 3 AM/AM)
 
@@ -115,6 +117,13 @@ M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건�
    - **구현 (2026-11-25)**: fm1-base companion 서비스(`fm1.toml companion = true`, docs/COMPANION.md)의 파일(0x61)로 슬롯 4개를 `slot1.fmy`..`slot4.fmy`(APP_FILES)로 내놓음. 쓰기는 `sl_wbegin/sl_wdata/sl_wcommit`이 빈 영역에 바로 흘려 쓰고, CRC와 곡 검사(`sf_peek`)를 통과해야 머리를 씀(전원 끊김·잘못된 파일이면 옛 곡 유지). 재생 중엔 쓰기·지우기 거부(`app_file_busy`). 받으면 화면에 "SLOT n RECEIVED (USB)"; 지금 편집 중인 곡은 안 바뀜. A2M 변환은 기기가 아니라 브라우저(`dist/fmy262-workbench.html`: export.js + songfile.js)에서. 실기에서 슬롯 읽기·쓰기·지우기 확인(바이트 동일). 명령줄: `vendor/fm1-base/tools/fm1_companion.py ls|get|put|rm`
    - 파일 화면의 FX/ENV(웹은 A2M 내려받기/USB 대기)는 기기에선 "USB: USE THE WORKBENCH PAGE"만 띄움
    - **웹 = 기기와 같은 엔진 (2026-11-25)**: 웹 프로토타입의 소리 코어를 Nuked에서 DBOPL로 바꿈(44.1kHz로 열고, 안 되면 선형 보간). 워크벤치 사이트(`dist/workbench/`)의 "실행" 탭은 펌웨어 자체를 emscripten으로 빌드한 에뮬레이터(`build.py --web` → `firmware/tracker/build/emu`), "곡" 탭은 같은 companion 규칙으로 에뮬레이터(BroadcastChannel)나 USB 기기의 슬롯에 곡을 넣고 뺌, "펌웨어 설치" 탭은 fm1-base 설치 페이지에 `firmware/fmy262-dev.fwsc`를 실음(기기로 실제 설치는 아직 이 페이지로 안 해 봄). 에뮬레이터 슬롯은 새로고침하면 사라질 수 있음
+
+## AT2와 맞춘 것 (2026-11-25, Corridor.A2M를 AdPlug a2m-v2와 틱 단위 비교)
+
+- A2M 키오프 바이트는 **0xFF**(0x80은 FMY262 옛 출력만, FM1X 있을 때). 음 1–97, 고정음 0x91–0xF1
+- 키오프 뒤 톤 포르타멘토 음 = 옛 음으로 다시 울리고 거기서 미끄러짐(`had`)
+- 비브라토 표: 값은 마지막 음/음높이 변화(`vbase`) 기준, 이펙트가 음높이를 바꾸면(`fch`: 비브라토·슬라이드·포르타·아르페지오·아르페지오 표 칸) 표가 처음부터, 칸이 적용되면 그 값이 채널 음높이가 됨(이펙트 비브라토와 겹치면 AT2처럼 떠돎). 16칸 넘는 AT2 표는 k칸마다 하나·속도 ×k로 줄여 가져옴(경고)
+- 비교 도구: `tests/rad/opl_dump.cpp`(AdPlug로 틱마다 OPL 상태), 남은 차이는 줄인 비브라토 표의 계단(±30센트 안)
 
 ## 지켜야 할 것
 

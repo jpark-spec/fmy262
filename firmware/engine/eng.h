@@ -58,6 +58,7 @@ typedef struct EngSong {
     /* the cell at (pattern, row, track) into *out: 0 if that pattern is none */
     int (*cell)(const struct EngSong *s, int pat, int row, int track, EngCell *out);
     const void *user;
+    uint8_t vdir;                      /* 1: AT2 volume scaling off (the volume is the operator level itself) */
 } EngSong;
 
 typedef struct { uint8_t on; uint16_t ord, row; uint8_t n; } EngLoop;   /* one Z C/D loop counter (engine.js s.lc) */
@@ -65,10 +66,10 @@ typedef struct { uint8_t on; uint16_t ord, row; uint8_t n; } EngLoop;   /* one Z
 
 typedef struct {
     int16_t inst;
-    eng_real pitch, vibo;
+    eng_real pitch, vibo, vbase;   /* vbase: the vibrato table's base pitch (AT2 vib_freq) */
     int16_t base, vol, mvol;
     uint8_t ne, ef[2], ev[2];          /* this row's effects (engine.js s.e) */
-    uint8_t on, pend, mute, own, kol, zero, vlock, plock, tmute, fineV, fineT;
+    uint8_t on, pend, mute, own, kol, zero, vlock, plock, tmute, fineV, fineT, had, fch;   /* fch: an effect changed the pitch */
     uint16_t fn;
     uint8_t blk;
     const EngIns *patch;               /* NULL, &copy (own) or a caller's preview patch */

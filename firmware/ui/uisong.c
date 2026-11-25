@@ -74,7 +74,7 @@ int us_load(UiSong *s, const PSong *P)
         }
     }
     s->e.rows = P->h.rows; s->e.bpm = P->h.bpm; s->e.speed = P->h.speed; s->e.lfo = P->h.lfo; s->e.opl = P->h.opl;
-    s->e.perc = P->h.perc; s->e.four = P->h.four; s->e.gvol = P->h.gvol; s->e.vtab = P->h.vtab; s->e.mspd = P->h.mspd;
+    s->e.perc = P->h.perc; s->e.four = P->h.four; s->e.gvol = P->h.gvol; s->e.vtab = P->h.vtab; s->e.mspd = P->h.mspd; s->e.vdir = 0;
     s->e.norder = P->h.norder > UI_ORDERS ? UI_ORDERS : P->h.norder;
     memcpy(s->order, P->h.order, s->e.norder);
     for (i = 0; i < 16; i++) {

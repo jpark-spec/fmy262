@@ -1,6 +1,7 @@
 /* FMY262: a song as a file ("FMY1"), for the song slots and (later) USB. Little-endian bytes, the patterns without
  * their empty cells:
- *   "FMY1" u8 version(1) | name 20 | u16 rows | bpm speed lfo opl perc four gvol vtab mspd | u16 norder | order[norder]
+ *   "FMY1" u8 version(1 or 2) | name 20 | u16 rows | bpm speed lfo opl perc four gvol vtab mspd [vdir: version 2] |
+ *   u16 norder | order[norder]
  *   arp[16] vib[16]: len spd delay loop data[16] | their names [2][16] 11 each
  *   u8 ninst, each: op[2] (am vib egt ksr mult ksl tl ar dr sl rr ws) fb con pan ft arpT vibT four | name 11 |
  *     u8 macro (0/1), then len lb ll ko dis[28] and len steps (d[11] fs(i16) pan dur)

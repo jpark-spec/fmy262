@@ -46,7 +46,7 @@ static void w(Eng *e, int r, int v) { e->w(e->u, (uint16_t)r, (uint8_t)v); }
 static void fresh(EngCh *s)
 {
     memset(s, 0, sizeof *s);
-    s->pitch = 60; s->base = 60; s->vol = 63; s->mvol = 63;
+    s->pitch = 60; s->base = 60; s->vbase = 60; s->vol = 63; s->mvol = 63;
     s->ptgt = -1; s->mp = -1; s->nd = -1; s->nc = -1; s->panOv = -1; s->arpOv = -1; s->vibOv = -1;
 }
 
@@ -166,9 +166,11 @@ static const EngIns *loadInst(Eng *e, int c)
 }
 
 static eng_real cl63(eng_real v) { return v < 0 ? 0 : v > 63 ? 63 : v; }
-static void tl(Eng *e, int a, const EngOp *o, eng_real v)
+/* AT2 with volume scaling off (song vdir): the volume is the operator's level itself (63 - TL), else it scales the
+   instrument's TL. AT2's 4-op voices always scale */
+static void tl(Eng *e, int a, const EngOp *o, eng_real v, int d)
 {
-    w(e, 0x40 + a, (o->ksl << 6) | rnd(63 - (63 - o->tl) * v / 63));
+    w(e, 0x40 + a, (o->ksl << 6) | rnd(d ? 63 - v : 63 - (63 - o->tl) * v / 63));
 }
 static void setVol(Eng *e, int c)
 {
@@ -182,29 +184,36 @@ static void setVol(Eng *e, int c)
     g = (eng_real)e->gvol / 63;
     cv = s->tmute ? 0 : cl63(s->vol + s->tro) * g;
     mv = s->tmute && ins->con ? 0 : cl63(s->mvol + (ins->con ? s->tro : 0)) * (ins->con ? g : 1);
-    if (drum(e, c) > 0) { tl(e, r.m, &ins->op[0], cv); return; }
+    if (drum(e, c) > 0) { tl(e, r.m, &ins->op[0], cv, e->song->vdir); return; }
     if (pairHi(e, c) >= 0) {
         const EngIns *P = partner(e, c);
         Regs q = regs(e, c + 1);
         if (P) {   /* AT2 set_ins_volume_4op: carriers depend on (hi.con, lo.con) */
             int conn = (ins->con << 1) | P->con;
-            tl(e, r.c, &ins->op[1], cv); tl(e, r.m, &ins->op[0], conn == 3 ? cv : 63);
-            tl(e, q.c, &P->op[1], conn == 2 ? cv : 63); tl(e, q.m, &P->op[0], conn & 1 ? cv : 63);
+            tl(e, r.c, &ins->op[1], cv, 0); tl(e, r.m, &ins->op[0], conn == 3 ? cv : 63, 0);
+            tl(e, q.c, &P->op[1], conn == 2 ? cv : 63, 0); tl(e, q.m, &P->op[0], conn & 1 ? cv : 63, 0);
             return;
         }
     }
-    tl(e, r.m, &ins->op[0], mv); tl(e, r.c, &ins->op[1], cv);
+    tl(e, r.m, &ins->op[0], mv, e->song->vdir); tl(e, r.c, &ins->op[1], cv, e->song->vdir);
+}
+/* a note's starting volume: full, or with AT2's volume scaling off the instrument's own levels */
+static void volInit(Eng *e, int c)
+{
+    EngCh *s = &e->ch[c];
+    const EngIns *ins = e->song && e->song->vdir && pairHi(e, c) < 0 && !pairLo(e, c) ? insOf(e, c) : 0;
+    s->vol = (int16_t)(ins ? 63 - ins->op[drum(e, c) > 0 ? 0 : 1].tl : 63); s->mvol = (int16_t)(ins ? 63 - ins->op[0].tl : 63);
 }
 
 /* AT2 calc_freq_shift_up/down: v F-number steps within the 0x156..0x2AE window */
 static eng_real slide(eng_real semis, int v, int dir)
 {
-    eng_real f = 440 * R_POW2((semis - 69) / 12), fn = f * 1048576 / 49716;
+    eng_real f = (eng_real)437.52 * R_POW2((semis - 69) / 12), fn = f * 1048576 / 49716;
     int blk = 0;
     while (fn >= 0x2AE && blk < 7) { blk++; fn /= 2; }
     if (dir > 0) { fn += v; if (fn >= 0x2AE) { if (blk == 7) fn = 0x2AE; else { fn -= 0x158; blk++; } } }
     else { fn -= v; if (fn <= 0x156) { if (blk == 0) fn = 0x156; else { fn += 0x158; blk--; } } }
-    return 69 + 12 * R_LOG2(fn * 49716 / R_POW2((eng_real)(20 - blk)) / 440);
+    return 69 + 12 * R_LOG2(fn * 49716 / R_POW2((eng_real)(20 - blk)) / (eng_real)437.52);
 }
 
 static void setFreq(Eng *e, int c, eng_real semis)
@@ -215,7 +224,7 @@ static void setFreq(Eng *e, int c, eng_real semis)
     int blk = 0, fn;
     Regs r;
     if (s->ftn) semis = slide(semis, s->ftn < 0 ? -s->ftn : s->ftn, isign(s->ftn));
-    f = 440 * R_POW2((semis + (eng_real)((ins ? ins->ft : 0) + e->tune) / 100 - 69) / 12);
+    f = (eng_real)437.52 * R_POW2((semis + (eng_real)((ins ? ins->ft : 0) + e->tune) / 100 - 69) / 12);
     fn = s->zero ? 0 : rnd(f * 1048576 / 49716);
     while (fn > 1023 && blk < 7) { blk++; fn = rnd(f * R_POW2((eng_real)(20 - blk)) / 49716); }
     fn = imax(0, imin(1023, fn)); s->fn = (uint16_t)fn; s->blk = (uint8_t)blk;
@@ -239,7 +248,7 @@ static void keyOff(Eng *e, int c)
 static int trigger(Eng *e, int c, int note, int keep)
 {
     EngCh *s = &e->ch[c];
-    s->pitch = note; s->base = (int16_t)note; s->fxo = 0; s->vibo = 0; s->tro = 0; s->tmute = 0; s->vpos = 0; s->tpos = 0;
+    s->pitch = note; s->base = (int16_t)note; s->vbase = note; s->had = 1; s->fxo = 0; s->vibo = 0; s->tro = 0; s->tmute = 0; s->vpos = 0; s->tpos = 0;
     s->ftn = 0; s->ap = 0; s->ac = 0; s->vp = 0; s->vc = 0; s->vd = 0; s->arpOv = -1; s->vibOv = -1;
     if (!keep) { s->mp = 0; s->md = 0; s->zero = 0; }
     if (!loadInst(e, c)) return 0;
@@ -308,7 +317,7 @@ static void vibStep(Eng *e, int c)
     if (!s->vspd || !s->vdep) return;
     s->vpos = (int16_t)((s->vpos + s->vspd * e->vfac) & 255);
     amt = (s->vdep * e->VT[s->vpos & (e->vsize - 1)]) >> 7;
-    s->vibo = slide(s->pitch, amt, s->vpos & e->vsize ? 1 : -1) - s->pitch;
+    s->vibo = slide(s->pitch, amt, s->vpos & e->vsize ? 1 : -1) - s->pitch; s->fch = 1;
 }
 static void tremStep(Eng *e, int c)
 {
@@ -329,6 +338,7 @@ static void gvolSet(Eng *e, int v)
 static void arpStep(Eng *e, int c)
 {
     EngCh *s = &e->ch[c];
+    s->fch = 1;
     s->fxo = s->as == 0 ? 0 : s->as == 1 ? s->a1 : s->a2;
     s->as = (int16_t)((s->as + 1) % 3);
 }
@@ -338,6 +348,7 @@ static void porta(Eng *e, int c)
     eng_real t;
     if (s->ptgt < 0 || !s->pspd) return;
     t = s->ptgt;
+    if (s->pitch != t) s->fch = 1;
     if (s->pitch < t) { eng_real p = slide(s->pitch, s->pspd, 1); s->pitch = p < t ? p : t; }
     else if (s->pitch > t) { eng_real p = slide(s->pitch, s->pspd, -1); s->pitch = p > t ? p : t; }
 }
@@ -346,6 +357,7 @@ static void pslide(Eng *e, int c, int v, int dir)
     EngCh *s = &e->ch[c];
     if (v) {
         eng_real p = slide(s->pitch, v, dir);
+        s->fch = 1;
         s->pitch = p < 0 ? 0 : p > 127 ? 127 : p;
     }
 }
@@ -450,7 +462,7 @@ static void extCmd(Eng *e, int c, int x, int y)
     case 14: if (y == 4) { keyOff(e, c); s->pend = !s->mute; } else if (y == 0) s->kol = 0; else if (y == 1) s->kol = 1; break;
     case 15:
         if (y == 0) keyOff(e, c);
-        else if (y == 1) { s->vol = 63; s->mvol = 63; setVol(e, c); }
+        else if (y == 1) { volInit(e, c); setVol(e, c); }
         else if (y == 2) s->vlock = 1; else if (y == 3) s->vlock = 0;
         else if (y == 6 || y == 7) {
             int i, both = 0;
@@ -529,10 +541,12 @@ static void doRow(Eng *e)
             if (cell.note >= 0 && nd >= 0 && (s->ev[nd] & 15)) { s->nd = s->ev[nd] & 15; s->ndn = cell.note; }
             else if (cell.note >= 0 && pe && (s->on || s->pend)) { /* tone portamento: glide, no retrigger */ }
             else if (cell.note >= 0) {
+                /* AT2: tone portamento after a key-off sounds the old note again and glides from there */
+                int pk = pe && s->had;
                 s->patch = 0; s->own = 0;
-                if (!s->vlock) { s->vol = 63; s->mvol = 63; }
+                if (!s->vlock) volInit(e, c);
                 if (s->plock != 1) s->panOv = -1;
-                if (trigger(e, c, cell.note, 0)) trig |= 1u << c;
+                if (trigger(e, c, pk ? s->base : cell.note, pk)) trig |= 1u << c;
             }
             else if (cell.note == -2) keyOff(e, c);
             noRestart = fv >= 0 && (s->ev[fv] & 15) == 15;
@@ -597,7 +611,7 @@ static void doFx(Eng *e, int xf)
         if (s->nd >= 0) {
             if (s->nd == 0) {
                 s->nd = -1; s->patch = 0; s->own = 0;
-                if (!s->vlock) { s->vol = 63; s->mvol = 63; }
+                if (!s->vlock) volInit(e, c);
                 trigger(e, c, s->ndn, 0);
             } else s->nd--;
         }
@@ -661,7 +675,9 @@ static void macroTick(Eng *e)
         const EngIns *ins;
         const EngTab *A, *V;
         eng_real off = 0;
+        int fc;
         fmMacro(e, c);
+        fc = s->fch; s->fch = 0;
         if (!s->on && !s->pend) continue;
         ins = insOf(e, c);
         if (!ins) continue;
@@ -669,13 +685,21 @@ static void macroTick(Eng *e)
         V = table(e, e->song->vib, s->vibOv >= 0 ? s->vibOv : ins->vibT);
         if (A && A->len > 0) {
             off += A->data[imin(s->ap, A->len - 1)];
+            if (s->ac == 0) fc = 1;
             if (++s->ac >= A->spd) { s->ac = 0; if (++s->ap >= A->len) s->ap = A->loop >= 0 && A->loop < A->len ? A->loop : A->len - 1; }
         }
+        /* vibrato table (AT2 macro_poll_proc): steps are offsets from the pitch of the last note or pitch change
+           (vbase). A pitch change by an effect restarts the table, and when a step lands the result becomes the
+           channel's pitch, so a vibrato effect on top drifts the way it does in AT2. vp counts from 1, 0 = not started */
         if (V && V->len > 0) {
-            if (s->vd < V->delay) s->vd++;
+            if (fc) { s->vc = 0; s->vp = 0; s->vbase = s->pitch + s->fxo + s->vibo + off; }
+            if (s->vc < V->spd - 1) s->vc++;
+            else if (s->vd < V->delay) s->vd++;
             else {
-                off += (eng_real)V->data[imin(s->vp, V->len - 1)] / 16;
-                if (++s->vc >= V->spd) { s->vc = 0; if (++s->vp >= V->len) s->vp = V->loop >= 0 && V->loop < V->len ? V->loop : V->len - 1; }
+                s->vc = 0;
+                if (s->vp == V->len && V->loop >= 0 && V->loop < V->len) s->vp = (int16_t)(V->loop + 1);
+                else if (s->vp <= V->len) s->vp++;
+                if (s->vp <= V->len) { s->pitch = s->vbase + (eng_real)V->data[s->vp - 1] / 16 - s->fxo - off; s->vibo = 0; }
             }
         }
         if (!A && !V && !s->ne && !s->vibo && !s->fxo && !s->ftn && s->mp < 0) continue;
@@ -773,7 +797,7 @@ void eng_on(Eng *e, int c, int inst, int note, const EngIns *patch)
     }
     else e->pmap[c] = -1;
     s = &e->ch[c];
-    s->mp = 0; s->md = 0; s->inst = (int16_t)inst; s->patch = patch; s->own = 0; s->vol = 63; s->mvol = 63; s->ne = 0; s->panOv = -1;
+    s->mp = 0; s->md = 0; s->inst = (int16_t)inst; s->patch = patch; s->own = 0; volInit(e, c); s->ne = 0; s->panOv = -1;
     trigger(e, c, note, 0);
 }
 

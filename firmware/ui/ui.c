@@ -2141,7 +2141,7 @@ static void drawMenu(void)
     for (k = 0; k < 5; k++) { int x = k * 48, on = st.mtab == k; rect(x, 37, 47, 10, on ? Ccyan : Cbar); ctxt(TABAB[k], x + 24, 39, on ? Cbg : Cgrey, 8); }
     for (k = 0; k < n; k++) {
         int q = ix[k], y = 50 + k * 15, on = k == st.mrow;
-        const char *val = q == S_INFO ? "FMY262 V0.8.1 · 44.1K" : q == S_CPU ? (cpuV >= 0 ? F("%d%% PK %d%% %dC", cpuV, cpuPk, cpuN) : "—") : sv(q);
+        const char *val = q == S_INFO ? "FMY262 V0.8.2 · 44.1K" : q == S_CPU ? (cpuV >= 0 ? F("%d%% PK %d%% %dC", cpuV, cpuPk, cpuN) : "—") : sv(q);
         int dflt = q == S_CPU ? cpuV < 0 : q == S_INFO ? 0 : S[q] == SETDEF[q].def;   /* (the page: the value against its default's words) */
         rect(1, y, 238, 13, on ? Ccyan : Cbar); txt(SETDEF[q].label, 5, y + 3, on ? Cbg : Cwhite, 8);
         txt(val, 235 - tw(val, 1), y + 3, on ? Cbg : dflt ? Cgrey : Cyellow, 8);

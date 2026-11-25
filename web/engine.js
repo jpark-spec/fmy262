@@ -22,7 +22,7 @@ class Engine {
     this.gain = 2.4;
     this.VT = []; this.speedTab(0);
   }
-  fresh() { return { inst: 0, pitch: 60, base: 60, vol: 63, mvol: 63, e: [], on: false, pend: false, fn: 0, blk: 0, mute: false, patch: null, own: false,
+  fresh() { return { inst: 0, pitch: 60, base: 60, had: false, vbase: 60, fch: false, vol: 63, mvol: 63, e: [], on: false, pend: false, fn: 0, blk: 0, mute: false, patch: null, own: false,
     fxo: 0, vibo: 0, tro: 0, as: 0, a1: 0, a2: 0, fsl: 0, pspd: 0, vspd: 0, vdep: 0, vpos: 0, tspd: 0, tdep: 0, tpos: 0, rtc: 0, trp: 0, tmute: false,
     ftn: 0, mp: -1, md: 0, kol: false, zero: false, nd: -1, ndn: 0, nc: -1, ls: 0, lc: {}, vlock: false, plock: false, panOv: -1, vst: 0, arpOv: -1, vibOv: -1, ap: 0, ac: 0, vp: 0, vc: 0, vd: 0 }; }
   /* AT2 generate_custom_vibrato (` command / GLOBAL page): 0 default sine, 1..239 triangle scaled by v/16, 240..255 size and speed factor */
@@ -59,17 +59,22 @@ class Engine {
     const s = this.ch[c], ins = this.insOf(c); if (!ins) return;
     const r = this.regs(c), cl = v => Math.max(0, Math.min(63, v)); if (r.k < 0) return;
     const g = this.gvol / 63, cv = s.tmute ? 0 : cl(s.vol + s.tro) * g, mv = s.tmute && ins.con ? 0 : cl(s.mvol + (ins.con ? s.tro : 0)) * (ins.con ? g : 1);
-    const tl = (a, o, v) => this.w(0x40 + a, (o.ksl << 6) | Math.round(63 - (63 - o.tl) * v / 63));
-    if (this.drum(c) > 0) return tl(r.m, ins.op[0], cv);
+    /* AT2 with volume scaling off (song.vdir): the volume is the operator's level itself (63 - TL), else it scales the
+       instrument's TL. AT2's 4-op voices always scale */
+    const dv = !!this.song.vdir, tl = (a, o, v, d) => this.w(0x40 + a, (o.ksl << 6) | Math.round(d ? 63 - v : 63 - (63 - o.tl) * v / 63));
+    if (this.drum(c) > 0) return tl(r.m, ins.op[0], cv, dv);
     if (this.pairHi(c) >= 0) { const P = this.partner(c), q = this.regs(c + 1); if (P) { /* AT2 set_ins_volume_4op: carriers depend on (hi.con, lo.con) */
         const conn = (ins.con << 1) | P.con; tl(r.c, ins.op[1], cv); tl(r.m, ins.op[0], conn === 3 ? cv : 63); tl(q.c, P.op[1], conn === 2 ? cv : 63); tl(q.m, P.op[0], conn & 1 ? cv : 63);
         return; } }
-    tl(r.m, ins.op[0], mv); tl(r.c, ins.op[1], cv);
+    tl(r.m, ins.op[0], mv, dv); tl(r.c, ins.op[1], cv, dv);
   }
+  /* a note's starting volume: full, or with AT2's volume scaling off the instrument's own levels */
+  volInit(c) { const s = this.ch[c], ins = this.song && this.song.vdir && this.pairHi(c) < 0 && !this.pairLo(c) ? this.insOf(c) : null;
+    s.vol = ins ? 63 - ins.op[this.drum(c) > 0 ? 0 : 1].tl : 63; s.mvol = ins ? 63 - ins.op[0].tl : 63; }
   setFreq(c, semis) {
     const s = this.ch[c], ins = this.insOf(c);
     if (s.ftn) semis = this.slide(semis, Math.abs(s.ftn), Math.sign(s.ftn));
-    const f = 440 * Math.pow(2, (semis + (((ins && ins.ft) || 0) + this.tune) / 100 - 69) / 12);
+    const f = 437.52 * Math.pow(2, (semis + (((ins && ins.ft) || 0) + this.tune) / 100 - 69) / 12); /* A4 = the AdLib note table's (AT2, RAD): 9.81 cents below 440 Hz */
     let blk = 0, fn = s.zero ? 0 : Math.round(f * 1048576 / 49716);
     while (fn > 1023 && blk < 7) { blk++; fn = Math.round(f * Math.pow(2, 20 - blk) / 49716); }
     fn = Math.max(0, Math.min(1023, fn)); s.fn = fn; s.blk = blk;
@@ -79,7 +84,7 @@ class Engine {
   keyOff(c) { const s = this.ch[c], r = this.regs(this.fch(c)), d = this.drum(c); s.on = false; s.pend = false; if (r.k < 0) return;
     if (d >= 0) { this.bd &= ~this.DRUM[d]; this.w(0xBD, this.bd); } else this.w(0xB0 + r.k, (s.blk << 2) | (s.fn >> 8)); }
   trigger(c, note, keep) {
-    const s = this.ch[c]; s.pitch = note; s.base = note; s.fxo = 0; s.vibo = 0; s.tro = 0; s.tmute = false; s.vpos = 0; s.tpos = 0; s.ftn = 0;
+    const s = this.ch[c]; s.pitch = note; s.base = note; s.vbase = note; s.had = true; s.fxo = 0; s.vibo = 0; s.tro = 0; s.tmute = false; s.vpos = 0; s.tpos = 0; s.ftn = 0;
     s.ap = 0; s.ac = 0; s.vp = 0; s.vc = 0; s.vd = 0; s.arpOv = -1; s.vibOv = -1; if (!keep) { s.mp = 0; s.md = 0; s.zero = false; }
     if (!this.loadInst(c)) return false;
     this.keyOff(c); this.setFreq(c, note);
@@ -100,14 +105,14 @@ class Engine {
   setV(c, v, both) { const s = this.ch[c], ins = this.insOf(c); s.vol = Math.min(63, v); if (both || (ins && ins.con)) s.mvol = Math.min(63, v); this.setVol(c); }
   vibStep(c) { const s = this.ch[c]; if (!s.vspd || !s.vdep) return;
     s.vpos = (s.vpos + s.vspd * this.vfac) & 255; const amt = (s.vdep * this.VT[s.vpos & (this.vsize - 1)]) >> 7;
-    s.vibo = this.slide(s.pitch, amt, s.vpos & this.vsize ? 1 : -1) - s.pitch; }
+    s.vibo = this.slide(s.pitch, amt, s.vpos & this.vsize ? 1 : -1) - s.pitch; s.fch = true; }
   tremStep(c) { const s = this.ch[c]; if (!s.tspd || !s.tdep) return;
     s.tpos = (s.tpos + s.tspd * this.vfac) & 255; const amt = (s.tdep * this.VT[s.tpos & (this.vsize - 1)]) >> 7; s.tro = s.tpos & this.vsize ? amt : -amt; this.setVol(c); }
   gvolSet(v) { this.gvol = Math.max(0, Math.min(63, v)); for (let c = 0; c < 20; c++) this.setVol(c); }
-  arpStep(c) { const s = this.ch[c]; s.fxo = [0, s.a1, s.a2][s.as]; s.as = (s.as + 1) % 3; }
-  porta(c) { const s = this.ch[c]; if (s.ptgt === undefined || !s.pspd) return;
+  arpStep(c) { const s = this.ch[c]; s.fch = true; s.fxo = [0, s.a1, s.a2][s.as]; s.as = (s.as + 1) % 3; }
+  porta(c) { const s = this.ch[c]; if (s.ptgt === undefined || !s.pspd) return; if (s.pitch !== s.ptgt) s.fch = true;
     if (s.pitch < s.ptgt) s.pitch = Math.min(s.ptgt, this.slide(s.pitch, s.pspd, 1)); else if (s.pitch > s.ptgt) s.pitch = Math.max(s.ptgt, this.slide(s.pitch, s.pspd, -1)); }
-  pslide(c, v, dir) { const s = this.ch[c]; if (v) s.pitch = Math.max(0, Math.min(127, this.slide(s.pitch, v, dir))); }
+  pslide(c, v, dir) { const s = this.ch[c]; if (v) s.fch = true; if (v) s.pitch = Math.max(0, Math.min(127, this.slide(s.pitch, v, dir))); }
   /* FM register macro (AT2 macro_poll_proc): steps with duration, loop, key-off position; 28 columns can be disabled */
   fmMacro(c) { const s = this.ch[c], base = s.patch && !s.own ? s.patch : this.song && this.song.inst[s.inst - 1], M = base && base.fmm;
     if (!M || !M.len || s.mp < 0) return;
@@ -146,7 +151,8 @@ class Engine {
         if (pe) { if (has(3) && has(3)[1]) s.pspd = has(3)[1]; if (cell[0] >= 0) s.ptgt = cell[0]; }
         if (cell[0] >= 0 && nd && (nd[1] & 15)) { s.nd = nd[1] & 15; s.ndn = cell[0]; }
         else if (cell[0] >= 0 && pe && (s.on || s.pend)) { /* tone portamento: glide, no retrigger */ }
-        else if (cell[0] >= 0) { s.patch = null; s.own = false; if (!s.vlock) { s.vol = 63; s.mvol = 63; } if (s.plock !== 1) s.panOv = -1; if (this.trigger(c, cell[0])) trig.push(c); }
+        else if (cell[0] >= 0) { /* AT2: tone portamento after a key-off sounds the old note again and glides from there */
+          const pk = !!pe && s.had; s.patch = null; s.own = false; if (!s.vlock) this.volInit(c); if (s.plock !== 1) s.panOv = -1; if (this.trigger(c, pk ? s.base : cell[0], pk)) trig.push(c); }
         else if (cell[0] === -2) this.keyOff(c);
         let noRestart = !!ext(35, 15) && (ext(35, 15)[1] & 15) === 15;
         for (const [f, v] of s.e) { const x = v >> 4, y = v & 15;
@@ -206,7 +212,7 @@ class Engine {
       case 14: if (y === 4) { this.keyOff(c); s.pend = !s.mute; } else if (y === 0) s.kol = false; else if (y === 1) s.kol = true; break; /* restart envelope; macro key-off loop, porta key and 4-op locks have no effect here */
       case 15:
         if (y === 0) this.keyOff(c);
-        else if (y === 1) { s.vol = 63; s.mvol = 63; this.setVol(c); }
+        else if (y === 1) { this.volInit(c); this.setVol(c); }
         else if (y === 2) s.vlock = true; else if (y === 3) s.vlock = false;
         else if (y === 6 || y === 7) { const both = e.some(q => q[0] === 35 && (q[1] === 0xF6 || q[1] === 0xF7) && q[1] !== (x << 4 | y)); s.vst = both ? 3 : y === 7 ? 1 : 2; }
         else if (y === 8) s.vst = 0;
@@ -222,7 +228,7 @@ class Engine {
   doFx(xf) {
     for (let c = 0; c < 20; c++) { const s = this.ch[c]; if (!this.active(c)) continue;
       if (!s.e.length && this.gsl[c]) this.pslide(c, this.gsl[c][1], this.gsl[c][0]);
-      if (s.nd >= 0) { if (s.nd === 0) { s.nd = -1; s.patch = null; s.own = false; if (!s.vlock) { s.vol = 63; s.mvol = 63; } this.trigger(c, s.ndn); } else s.nd--; }
+      if (s.nd >= 0) { if (s.nd === 0) { s.nd = -1; s.patch = null; s.own = false; if (!s.vlock) this.volInit(c); this.trigger(c, s.ndn); } else s.nd--; }
       if (s.nc >= 0) { if (s.nc === 0) { s.nc = -1; this.keyOff(c); } else s.nc--; }
       for (const [f, v] of s.e) { const x = v >> 4, y = v & 15;
         switch (f) {
@@ -259,22 +265,27 @@ class Engine {
         } } }
   }
   slide(semis, v, dir) { /* AT2 calc_freq_shift_up/down: v F-number steps within the 0x156..0x2AE window */
-    const f = 440 * Math.pow(2, (semis - 69) / 12); let blk = 0, fn = f * 1048576 / 49716;
+    const f = 437.52 * Math.pow(2, (semis - 69) / 12); let blk = 0, fn = f * 1048576 / 49716;
     while (fn >= 0x2AE && blk < 7) { blk++; fn /= 2; }
     if (dir > 0) { fn += v; if (fn >= 0x2AE) { if (blk === 7) fn = 0x2AE; else { fn -= 0x158; blk++; } } }
     else { fn -= v; if (fn <= 0x156) { if (blk === 0) fn = 0x156; else { fn += 0x158; blk--; } } }
-    return 69 + 12 * Math.log2(fn * 49716 / Math.pow(2, 20 - blk) / 440);
+    return 69 + 12 * Math.log2(fn * 49716 / Math.pow(2, 20 - blk) / 437.52);
   }
   table(kind, n) { const L = this.song && this.song[kind]; return n > 0 && L ? L[n - 1] : null; }
   macroTick() {
-    for (let c = 0; c < 20; c++) { const s = this.ch[c]; this.fmMacro(c); if (!s.on && !s.pend) continue;
+    for (let c = 0; c < 20; c++) { const s = this.ch[c]; this.fmMacro(c); let fc = s.fch; s.fch = false; if (!s.on && !s.pend) continue;
       const ins = this.insOf(c); if (!ins) continue;
       const A = this.table('arp', s.arpOv >= 0 ? s.arpOv : ins.arpT), V = this.table('vib', s.vibOv >= 0 ? s.vibOv : ins.vibT);
       let off = 0;
-      if (A && A.len > 0) { off += A.data[Math.min(s.ap, A.len - 1)] || 0;
+      if (A && A.len > 0) { off += A.data[Math.min(s.ap, A.len - 1)] || 0; if (s.ac === 0) fc = true;
         if (++s.ac >= A.spd) { s.ac = 0; if (++s.ap >= A.len) s.ap = A.loop >= 0 && A.loop < A.len ? A.loop : A.len - 1; } }
-      if (V && V.len > 0) { if (s.vd < V.delay) s.vd++; else { off += (V.data[Math.min(s.vp, V.len - 1)] || 0) / 16;
-        if (++s.vc >= V.spd) { s.vc = 0; if (++s.vp >= V.len) s.vp = V.loop >= 0 && V.loop < V.len ? V.loop : V.len - 1; } } }
+      /* vibrato table (AT2 macro_poll_proc): steps are offsets from the frequency of the last note or pitch change
+         (vbase). A pitch change by an effect restarts the table, and when a step lands the result becomes the
+         channel's pitch, so a vibrato effect on top drifts the way it does in AT2. vp counts from 1, 0 = not started */
+      if (V && V.len > 0) { if (fc) { s.vc = 0; s.vp = 0; s.vbase = s.pitch + s.fxo + s.vibo + off; }
+        if (s.vc < V.spd - 1) s.vc++; else if (s.vd < V.delay) s.vd++;
+        else { s.vc = 0; if (s.vp === V.len && V.loop >= 0 && V.loop < V.len) s.vp = V.loop + 1; else if (s.vp <= V.len) s.vp++;
+          if (s.vp <= V.len) { s.pitch = s.vbase + (V.data[s.vp - 1] || 0) / 16 - s.fxo - off; s.vibo = 0; } } }
       if (!A && !V && !s.e.length && !s.vibo && !s.fxo && !s.ftn && s.mp < 0) continue;
       this.setFreq(c, s.pitch + s.fxo + s.vibo + off); }
   }
@@ -310,7 +321,7 @@ class Engine {
     else if (m.t === 'on') { const I0 = m.patch || (this.song && this.song.inst[m.inst - 1]);
       if (I0 && I0.four && this.opl3 && this.pairHi(m.c) < 0) { /* preview a 4-op sound on the last pair */ this.f4 |= 32; this.w(0x104, this.f4); this.pmap = this.pmap || {}; this.pmap[m.c] = 13; m = Object.assign({}, m, { c: 13 }); this.ch[14].inst = 0; this.ch[14].patch = null; }
       else if (this.pmap) delete this.pmap[m.c];
-      const s = this.ch[m.c]; s.mp = 0; s.md = 0; s.inst = m.inst; s.patch = m.patch || null; s.own = false; s.vol = 63; s.mvol = 63; s.e = []; s.panOv = -1; this.trigger(m.c, m.note); }
+      const s = this.ch[m.c]; s.mp = 0; s.md = 0; s.inst = m.inst; s.patch = m.patch || null; s.own = false; this.volInit(m.c); s.e = []; s.panOv = -1; this.trigger(m.c, m.note); }
     else if (m.t === 'off') this.keyOff(this.pmap && this.pmap[m.c] !== undefined ? this.pmap[m.c] : m.c);
     else if (m.t === 'scopeon') this.o.opl_scope_on(m.on ? 1 : 0);
     else if (m.t === 'scope') { /* the waveform screen: the latest n samples (22.05 kHz) of each asked track's OPL channel */

@@ -14,10 +14,11 @@ function fmyWrite(s) {
   const rows = Math.max(FMY_ROWS_MIN, Math.min(FMY_ROWS_MAX, s.rows | 0));
   if (rows !== s.rows) warn.push(`rows ${s.rows} -> ${rows}`);
   'FMY1'.split('').forEach(c => u8(c.charCodeAt(0)));
-  u8(1);
+  u8(s.vdir ? 2 : 1);   /* version 2 = one more head byte (vdir); a song without it stays version 1 */
   str(s.name, 20);
   u16(rows);
   [s.bpm, s.speed, s.lfo || 0, s.opl === 2 ? 2 : 3, s.perc ? 1 : 0, s.four || 0, s.gvol === undefined ? 63 : s.gvol, s.vtab || 0, s.mspd || 1].forEach(u8);
+  if (s.vdir) u8(1);
   let order = s.order.slice(0, FMY_ORDERS);
   if (!order.length) order = [0];
   if (order.length < s.order.length) warn.push(`order ${s.order.length} positions -> ${FMY_ORDERS}`);
@@ -75,11 +76,11 @@ function fmyRead(bytes) {
   const str = n => { let t = ''; for (let i = 0; i < n; i++) { const c = u8(); if (c && t.length === i) t += String.fromCharCode(c); } return t; };
   const range = (v, lo, hi, what) => { if (v < lo || v > hi) bad(`${what} ${v}`); return v; };
   if (String.fromCharCode(u8(), u8(), u8(), u8()) !== 'FMY1') bad('no FMY1 at the start');
-  if (u8() !== 1) bad('a newer version');
+  const ver = u8(); if (ver !== 1 && ver !== 2) bad('a newer version');
   const s = { name: str(20) };
   s.rows = range(u16(), FMY_ROWS_MIN, FMY_ROWS_MAX, 'rows');
   s.bpm = u8(); s.speed = u8(); s.lfo = u8(); s.opl = range(u8(), 2, 3, 'opl'); s.perc = !!u8(); s.four = u8();
-  s.gvol = u8(); s.vtab = u8(); s.mspd = u8();
+  s.gvol = u8(); s.vtab = u8(); s.mspd = u8(); s.vdir = ver >= 2 ? range(u8(), 0, 1, 'vdir') : 0;
   const no = range(u16(), 1, FMY_ORDERS, 'order');
   s.order = []; for (let i = 0; i < no; i++) s.order.push(u8());
   const tab = () => { const t = { len: range(u8(), 0, 16, 'table length'), spd: u8(), delay: u8(), loop: s8(), data: [] }; for (let j = 0; j < 16; j++) t.data.push(s8()); return t; };

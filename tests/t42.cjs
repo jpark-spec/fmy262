@@ -22,7 +22,7 @@ cp.execSync(`cc -O2 -std=c99 -Wall -Wextra -Werror -DENG_EXACT -DENG_FMY ${src} 
 function songBin(s) {
   const b = [], u8 = v => b.push(v & 255), u16 = v => { u8(v); u8(v >> 8); };
   'ENG1'.split('').forEach(c => u8(c.charCodeAt(0)));
-  u16(s.rows); [s.bpm, s.speed, s.lfo || 0, s.opl, s.perc ? 1 : 0, s.four || 0, s.gvol, s.vtab || 0, s.mspd || 1].forEach(u8);
+  u16(s.rows); [s.bpm, s.speed, s.lfo || 0, s.opl, s.perc ? 1 : 0, s.four || 0, s.gvol, s.vtab || 0, s.mspd || 1, s.vdir ? 1 : 0].forEach(u8);
   u16(s.order.length); s.order.forEach(u8);
   u16(s.patterns.length);
   s.patterns.forEach(P => { if (!P) return u8(0); u8(1); for (let r = 0; r < s.rows; r++) for (let c = 0; c < 20; c++) P[r][c].forEach(u8); });
@@ -85,7 +85,7 @@ function fuzzSong() {
   const order = [...Array(ri(1, 6))].map(() => ri(0, patterns.length - 1 + (pick(0.1) ? 1 : 0)));
   if (pick(0.2)) order.push(0x80 + ri(0, order.length - 1));
   return normSong({ rows, bpm: ri(32, 255), speed: ri(1, 12), lfo: ri(0, 3), opl: pick(0.2) ? 2 : 3, perc: pick(0.3), four: pick(0.5) ? ri(0, 63) : 0,
-    gvol: pick(0.7) ? 63 : ri(0, 63), vtab: pick(0.6) ? 0 : pick(0.5) ? ri(1, 239) : ri(240, 255), mspd: ri(1, 3), order, patterns, inst,
+    gvol: pick(0.7) ? 63 : ri(0, 63), vtab: pick(0.6) ? 0 : pick(0.5) ? ri(1, 239) : ri(240, 255), mspd: ri(1, 3), vdir: pick(0.5) ? 1 : 0, order, patterns, inst,
     arp: [...Array(16)].map(() => tab('arp')), vib: [...Array(16)].map(() => tab('vib')) });
 }
 function script(s, sec) {

@@ -2,7 +2,7 @@
 #include "songfile.h"
 #include <string.h>
 
-#define VERSION 1
+#define VERSION 1   /* 2 = one more head byte (vdir); a song without it is written as 1 */
 
 /* ------------------------------------------------------------------ writing --- */
 typedef struct { void (*out)(void *u, const uint8_t *b, uint32_t n); void *u; uint32_t n; uint8_t buf[64]; uint32_t k; } W;
@@ -20,11 +20,12 @@ uint32_t sf_write(const UiSong *s, void (*out)(void *u, const uint8_t *b, uint32
     const EngSong *e = &s->e;
     w.out = out; w.u = u; w.n = 0; w.k = 0;
     for (i = 0; i < 4; i++) w8(&w, SF_MAGIC[i]);
-    w8(&w, VERSION);
+    w8(&w, e->vdir ? 2 : VERSION);
     wstr(&w, s->name, 20);
     w16(&w, e->rows);
     w8(&w, e->bpm); w8(&w, e->speed); w8(&w, e->lfo); w8(&w, e->opl); w8(&w, e->perc); w8(&w, e->four);
     w8(&w, e->gvol); w8(&w, e->vtab); w8(&w, e->mspd);
+    if (e->vdir) w8(&w, 1);
     w16(&w, e->norder);
     for (i = 0; i < e->norder; i++) w8(&w, s->order[i]);
     for (k = 0; k < 2; k++)
@@ -103,22 +104,24 @@ static EngFmStep steps[255];
 static int parse(R *r, UiSong *s, char name[21], int *npat, int *npos)
 {
     char nm[21];
-    int i, j, k, rows, norder, ninst, np, full = 0;
+    int i, j, k, rows, norder, ninst, np, full = 0, ver;
     EngSong h;
     memset(&h, 0, sizeof h);
     for (i = 0; i < 4; i++) if (r8(r) != SF_MAGIC[i]) return -1;
-    if (r8(r) != VERSION) return -1;
+    ver = r8(r);
+    if (ver != 1 && ver != 2) return -1;
     rstr(r, nm, 20);
     rows = range(r, r16(r), 16, 256);
     h.bpm = (uint8_t)r8(r); h.speed = (uint8_t)r8(r); h.lfo = (uint8_t)r8(r); h.opl = (uint8_t)range(r, r8(r), 2, 3);
     h.perc = (uint8_t)r8(r); h.four = (uint8_t)r8(r); h.gvol = (uint8_t)r8(r); h.vtab = (uint8_t)r8(r); h.mspd = (uint8_t)r8(r);
+    h.vdir = (uint8_t)(ver >= 2 ? range(r, r8(r), 0, 1) : 0);
     norder = range(r, r16(r), 1, UI_ORDERS);
     if (r->bad) return -1;
     if (s) {
         us_begin(s, rows);
         memcpy(s->name, nm, sizeof nm);
         s->e.bpm = h.bpm; s->e.speed = h.speed; s->e.lfo = h.lfo; s->e.opl = h.opl; s->e.perc = h.perc; s->e.four = h.four;
-        s->e.gvol = h.gvol; s->e.vtab = h.vtab; s->e.mspd = h.mspd; s->e.norder = (uint16_t)norder;
+        s->e.gvol = h.gvol; s->e.vtab = h.vtab; s->e.mspd = h.mspd; s->e.vdir = h.vdir; s->e.norder = (uint16_t)norder;
     }
     if (name) memcpy(name, nm, sizeof nm);
     if (npos) *npos = norder;

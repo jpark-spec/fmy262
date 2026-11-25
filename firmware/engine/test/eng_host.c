@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 #endif
     if (u8() != 'E' || u8() != 'N' || u8() != 'G' || u8() != '1') { fprintf(stderr, "not ENG1\n"); return 2; }
     S.rows = (uint16_t)u16(); S.bpm = (uint8_t)u8(); S.speed = (uint8_t)u8(); S.lfo = (uint8_t)u8(); S.opl = (uint8_t)u8();
-    S.perc = (uint8_t)u8(); S.four = (uint8_t)u8(); S.gvol = (uint8_t)u8(); S.vtab = (uint8_t)u8(); S.mspd = (uint8_t)u8();
+    S.perc = (uint8_t)u8(); S.four = (uint8_t)u8(); S.gvol = (uint8_t)u8(); S.vtab = (uint8_t)u8(); S.mspd = (uint8_t)u8(); S.vdir = (uint8_t)u8();
     S.norder = (uint16_t)u16();
     {
         uint8_t *o = malloc(S.norder + 1);

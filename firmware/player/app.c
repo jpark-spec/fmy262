@@ -54,7 +54,7 @@ static void song_load(const PSong *P)   /* (the main loop's, with the engine off
         }
     }
     song.rows = P->h.rows; song.bpm = P->h.bpm; song.speed = P->h.speed; song.lfo = P->h.lfo; song.opl = P->h.opl;
-    song.perc = P->h.perc; song.four = P->h.four; song.gvol = P->h.gvol; song.vtab = P->h.vtab; song.mspd = P->h.mspd;
+    song.perc = P->h.perc; song.four = P->h.four; song.gvol = P->h.gvol; song.vtab = P->h.vtab; song.mspd = P->h.mspd; song.vdir = 0;
     song.norder = P->h.norder; song.order = P->h.order; song.inst = inst;
     for (i = 0; i < 16; i++) { song.arp[i] = P->arp[i]; song.vib[i] = P->vib[i]; }
     song.cell = sm_cell; song.user = &arena;

@@ -1235,7 +1235,7 @@ function drawMenu() { const m = st.menu, rows = menuRows(), r = rows[m.row], v =
   cards(['SETTINGS', 'ROW', 'VALUE', 'DEFAULT'], [TABAB[m.tab], String(m.row + 1), v.replace(' ', ''), r[4].replace(' ', '')]);
   status(r[2], 'HOME CLOSES', C.cyan);
   SETTABS.forEach((tb, j) => { const x = j * 48, on = m.tab === j; rect(x, 37, 47, 10, on ? C.cyan : C.bar); ctxt(TABAB[j], x + 24, 39, on ? C.bg : C.grey); });
-  rows.forEach((q, k) => { const y = 50 + k * 15, on = k === m.row, val = q[1] === 'info' ? 'FMY262 V0.8.1 · ' + (ctx ? Math.round(ctx.sampleRate / 100) / 10 + 'K' : 'NO AUDIO') : q[1] === 'cpu' ? (cpuV >= 0 ? cpuV + '% PK ' + cpuPk + '% 1C' : '—') : S[q[1]];
+  rows.forEach((q, k) => { const y = 50 + k * 15, on = k === m.row, val = q[1] === 'info' ? 'FMY262 V0.8.2 · ' + (ctx ? Math.round(ctx.sampleRate / 100) / 10 + 'K' : 'NO AUDIO') : q[1] === 'cpu' ? (cpuV >= 0 ? cpuV + '% PK ' + cpuPk + '% 1C' : '—') : S[q[1]];
     rect(1, y, 238, 13, on ? C.cyan : C.bar); txt(q[2], 5, y + 3, on ? C.bg : C.white);
     txt(val, 235 - tw(val), y + 3, on ? C.bg : val === q[4] ? C.grey : C.yellow); if (on && q[3].length > 1) { txt('‹', 235 - tw(val) - 10, y + 3, C.bg); } });
   const tips = { color: 'SCREEN COLOURS', leds: 'IDLE BUTTON GLOW', sleep: 'BLANK AFTER NO INPUT', rownum: 'ROW LABELS', homev: 'VIEW AT START', hold: 'LONG PRESS TIME (FX, HOME)', accel: 'FAST TURNS MOVE MORE',
@@ -1243,7 +1243,7 @@ function drawMenu() { const m = st.menu, rows = menuRows(), r = rows[m.row], v =
     tune: 'MASTER TUNE IN CENTS', midiin: 'USB MIDI KEYS PLAY', midirec: 'MIDI NOTES ENTER WHEN REC', restore: 'OPEN LAST SONG AT START', help: 'PAGE TIPS ON SCREEN', cpu: 'AUDIO RENDER, OF ITS TIME', core: 'FM-1: FROM THE NEXT START', reset: 'OCT+ RESETS ALL', info: 'SEL OR OCT+ OPENS · LICENCES' };
   foot(tips[r[1]] || '', C.dim); }
 /* the start screen (3 s, any input skips) and HOME menu SYSTEM · INFO: about and licences, DOS-style */
-const ABOUT = ['FMY262', 'AN OPL3 TRACKER FOR M-VAVE FM-1', 'V0.8.1 BY MR. TRACY EVANS', 'LICENCE: GPL-2.0-OR-LATER'];
+const ABOUT = ['FMY262', 'AN OPL3 TRACKER FOR M-VAVE FM-1', 'V0.8.2 BY MR. TRACY EVANS', 'LICENCE: GPL-2.0-OR-LATER'];
 const LICS = ['FMY262 IS FREE SOFTWARE UNDER THE', 'GNU GPL, VERSION 2 OR LATER.', 'IT COMES WITH NO WARRANTY.', '',
   'DBOPL OPL3 EMULATOR · GPL-2.0+', ' (C) 2002-2010 THE DOSBOX TEAM', ' C VERSION FROM CHOCOLATE DOOM', '',
   'FM1-BASE PLATFORM · MPL-2.0', ' (C) 2026 CHARLES VESTAL & OTHERS', ' GITHUB.COM/CHARLESVESTAL/FM1-BASE', '',

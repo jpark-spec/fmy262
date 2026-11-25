@@ -175,9 +175,9 @@ function importRAD(bytes) {
   const inst = [], made = new Map();
   const OPF = b => ({ am: b[0] >> 7 & 1, vib: b[0] >> 6 & 1, egt: b[0] >> 5 & 1, ksr: b[0] >> 4 & 1, mult: b[0] & 15, ksl: b[1] >> 6, tl: b[1] & 63, ar: b[2] >> 4, dr: b[2] & 15, sl: b[3] >> 4, rr: b[3] & 15, ws: b[4] & 7 });
   const SIL = [0, 63, 0, 0xF0, 0], PAN = [1, 2, 0, 1];
-  /* detune (F-number steps, taken at F-number 512) as cents, plus RAD's own tuning: its note table sits 9.8 cents
-   below equal temperament (F-number 0x241 = 437.7 Hz for A), measured against AdPlug by t48 */
-  const cents = f => Math.max(-99, Math.min(99, Math.round(1200 * Math.log2((512 + f) / 512) - 9.8)));
+  /* detune (F-number steps, taken at F-number 512) as cents. RAD's note table sits 9.8 cents below equal
+   temperament, as AT2's does; the engine's A4 (437.52 Hz) is already that, so nothing more is added */
+  const cents = f => Math.max(-99, Math.min(99, Math.round(1200 * Math.log2((512 + f) / 512))));
   const nm = (I, k) => ((I.name || '').replace(/[^\x20-\x7e]/g, '?').trim().toUpperCase().slice(0, 11) || 'RAD ' + k.toString(16).toUpperCase().padStart(2, '0'));
   const mk = (I, k, mod, car, fb, con, pan, ft) => ({ name: nm(I, k), fb, con, pan: PAN[pan], ft, arpT: 0, vibT: 0, pv: 0, op: [OPF(mod), OPF(car)] });
   function variant(k, kind) {

@@ -65,7 +65,7 @@ function crcUpd(buf, crc) { for (let i = 0; i < buf.length; i++) crc = CRC_T[(cr
 /* ---- AT2 A2M v11 writer ---- */
 const A2 = { SONG: 1138338, NAME: 43, INS: 14, REGT: 3831, MAC: 521, O_NAMES: 86, O_INS: 11051, O_IMAC: 14621, O_MAC: 991526, O_ORD: 1124381, O_TEMPO: 1124509, O_PLEN: 1124512, O_NTRK: 1124514, O_MSPD: 1124515, O_BPM: 1138335, O_RES: 1137311, O_DIS: 1130042, O_I4: 1137182, PAT: 245760 };
 function putStr(b, off, s, max) { s = String(s).replace(/[^\x20-\x7e]/g, '?').slice(0, max); b[off] = s.length; for (let k = 0; k < s.length; k++) b[off + 1 + k] = s.charCodeAt(k); }
-const at2Note = m => Math.max(1, Math.min(96, m - 11));
+const at2Note = m => Math.max(1, Math.min(97, m - 11));
 function a2mSongdata(song) {
   const b = new Uint8Array(A2.SONG);
   putStr(b, 0, song.name || 'FM-1 SONG', 42); putStr(b, 43, 'FM-1 OPL3 TRACKER', 42);
@@ -92,7 +92,7 @@ function a2mSongdata(song) {
   }
   for (let k = 0; k < 128; k++) b[A2.O_ORD + k] = k < song.order.length ? song.order[k] : 0x80;
   b[A2.O_TEMPO] = Math.max(1, Math.min(255, Math.round(song.bpm * 0.4))); b[A2.O_TEMPO + 1] = song.speed;
-  b[A2.O_TEMPO + 2] = ((song.lfo || 0) >> 1 & 1) << 3 | ((song.lfo || 0) & 1) << 4 | (song.perc ? 0x40 : 0);
+  b[A2.O_TEMPO + 2] = ((song.lfo || 0) >> 1 & 1) << 3 | ((song.lfo || 0) & 1) << 4 | (song.perc ? 0x40 : 0) | (song.vdir ? 0 : 0x80); /* bit 7: AT2 volume scaling (how FMY262 plays volumes unless vdir) */
   b[A2.O_PLEN] = song.rows & 255; b[A2.O_PLEN + 1] = song.rows >> 8; b[A2.O_NTRK] = song.perc ? 20 : song.opl === 2 ? 9 : 18; b[A2.O_NTRK + 3] = (song.four || 0) & 63; b[A2.O_MSPD] = Math.max(1, Math.min(8, song.mspd || 1));
   b[A2.O_BPM] = 4;
   /* FM-1 extras in reserved_data: exact values the A2M stores only approximately */
@@ -103,14 +103,14 @@ function a2mSongdata(song) {
   for (let t = 0; t < 16; t++) { const A = song.arp[t], V = song.vib[t];
     for (let k = 0; k < 16; k++) { b[x + 78 + t * 16 + k] = (A ? A.data[k] : 0) & 255; b[x + 334 + t * 16 + k] = (V ? V.data[k] : 0) & 255; }
     putStr(b, x + 590 + t * 10, A && A.name || '', 9); putStr(b, x + 750 + t * 10, V && V.name || '', 9); }
-  b[x + 912] = 0xA5; b[x + 913] = song.opl === 2 ? 2 : 3; b[x + 914] = song.gvol === undefined ? 63 : song.gvol; b[x + 915] = song.vtab || 0;
+  b[x + 912] = 0xA5; b[x + 913] = song.opl === 2 ? 2 : 3; b[x + 914] = song.gvol === undefined ? 63 : song.gvol; b[x + 915] = song.vtab || 0; b[x + 916] = 0xA0 | (song.vdir ? 1 : 0);
   return b;
 }
 function a2mPatternBlock(song, blk) {
   const b = new Uint8Array(A2.PAT);
   for (let p = 0; p < 8; p++) { const P = song.patterns[blk * 8 + p]; if (!P) continue;
     for (let r = 0; r < Math.min(256, song.rows); r++) for (let c = 0; c < 20; c++) { const cl = P[r][c]; if (!cl) continue; const o = ((p * 20 + c) * 256 + r) * 6;
-      if (cl[0] >= 0) b[o] = at2Note(cl[0]); else if (cl[0] === -2) b[o] = 0x80;
+      if (cl[0] >= 0) b[o] = at2Note(cl[0]); else if (cl[0] === -2) b[o] = 0xFF; /* AT2: key off = BYTE_NULL */
       b[o + 1] = cl[1] || 0;
       const at2 = (f, v) => f < 0 || (f === 0 && !v) ? [0, 0] : f === 15 ? (v < 32 ? [15, v] : [14, Math.round(v * 0.4)]) : f === 12 ? [12, Math.max(0, Math.min(63, v))] : [f, v];
       [b[o + 2], b[o + 3]] = at2(cl[2], cl[3]); [b[o + 4], b[o + 5]] = at2(cl[4], cl[5]); } }
@@ -261,7 +261,7 @@ function importA2M(bytes) {
   for (let pi = 0; pi <= maxPat; pi++) { const blk = pat[pi >> 3]; if (!blk) { patterns.push(emptyPattern(rows)); continue; }
     const P = emptyPattern(rows), q = pi & 7;
     for (let r = 0; r < rows; r++) for (let c = 0; c < 20; c++) { const o = ((q * 20 + c) * 256 + r) * 6, cl = P[r][c];
-      const n = blk[o]; if (n >= 1 && n <= 96) cl[0] = n + 11; else if (n === 0x80) cl[0] = -2; else if (n > 0x90 && n <= 0x90 + 96) cl[0] = n - 0x90 + 11;
+      const n = blk[o]; if (n >= 1 && n <= 97) cl[0] = n + 11; else if (n === 0xFF || (n === 0x80 && hasX)) cl[0] = -2; else if (n > 0x90 && n <= 0x90 + 97) cl[0] = n - 0x90 + 11; /* 0xFF = AT2 key off; 0x80 = FMY262 before 0.8.2 */
       cl[1] = blk[o + 1]; maxIns = Math.max(maxIns, cl[1]);
       [[blk[o + 2], blk[o + 3]], [blk[o + 4], blk[o + 5]]].forEach(([fd, fv], k) => { const i = 2 + k * 2;
         if (fd === 0 && fv === 0) return;
@@ -292,13 +292,18 @@ function importA2M(bytes) {
   for (let t = 0; t < 16; t++) { const mo = A2.O_MAC + t * A2.MAC, vo = mo + 260, A = blankTable('arp'), V = blankTable('vib');
     const al = Math.min(16, sd[mo]); if (al) { A.len = al; A.spd = Math.max(1, sd[mo + 1]); A.loop = sd[mo + 2] && sd[mo + 3] ? sd[mo + 2] - 1 : -1;
       for (let k = 0; k < al; k++) { const v = sd[mo + 5 + k]; A.data[k] = xM ? s8(sd[x + 78 + t * 16 + k]) : v <= 96 ? v : 0; } if (sd[mo] > 16) warn.push('ARP TABLE CUT TO 16 STEPS'); }
-    const vl = Math.min(16, sd[vo]); if (vl) { V.len = vl; V.spd = Math.max(1, sd[vo + 1]); V.delay = sd[vo + 2]; V.loop = sd[vo + 3] && sd[vo + 4] ? sd[vo + 3] - 1 : -1;
-      for (let k = 0; k < vl; k++) V.data[k] = xM ? s8(sd[x + 334 + t * 16 + k]) : Math.max(-64, Math.min(64, Math.round(s8(sd[vo + 6 + k]) / 1.7))); }
+    let vl = Math.min(16, sd[vo]); if (vl) { V.len = vl; V.spd = Math.max(1, sd[vo + 1]); V.delay = sd[vo + 2]; V.loop = sd[vo + 3] && sd[vo + 4] ? sd[vo + 3] - 1 : -1;
+      /* AT2 tables run to 255 steps; a longer one is taken every k-th step at k times the speed (same shape and period) */
+      let full = sd[vo]; if (!xM && V.loop >= 0) full = Math.min(full, sd[vo + 3] + sd[vo + 4] - 1); const k = xM ? 1 : Math.max(1, Math.ceil(full / 16));
+      if (k > 1) { vl = V.len = Math.ceil(full / k); V.spd = Math.min(16, V.spd * k); if (V.loop >= 0) V.loop = Math.min(vl - 1, Math.round(V.loop / k)); warn.push('VIBRATO TABLE ' + (t + 1) + ': ' + full + ' STEPS MADE ' + vl); }
+      for (let k2 = 0; k2 < vl; k2++) V.data[k2] = xM ? s8(sd[x + 334 + t * 16 + k2]) : Math.max(-64, Math.min(64, Math.round(s8(sd[vo + 6 + k2 * k]) / 1.7))); }
     if (xM) { A.name = str(x + 590 + t * 10, 9); V.name = str(x + 750 + t * 10, 9); }
     arp.push(A); vib.push(V); }
   const tempo = sd[A2.O_TEMPO] || 50, flags = sd[A2.O_TEMPO + 2];
   const song = { name: str(0, 42).trim().slice(0, 11) || 'IMPORTED', bpm: hasX && sd[x + 5] >= 32 ? sd[x + 5] : Math.max(32, Math.min(255, Math.round(tempo * 2.5))), speed: Math.max(1, sd[A2.O_TEMPO + 1] || 6),
     rows, order, patterns, inst, arp, vib, lfo: (flags >> 4 & 1) | (flags >> 3 & 1) << 1,
-    perc: !!(flags >> 6 & 1), mspd: Math.max(1, Math.min(8, u16(A2.O_MSPD) || 1)), four: sd[A2.O_NTRK + 3] & 63, opl: hasX && sd[x + 912] === 0xA5 ? sd[x + 913] : 3, gvol: hasX && sd[x + 912] === 0xA5 ? Math.min(63, sd[x + 914]) : 63, vtab: hasX && sd[x + 912] === 0xA5 ? sd[x + 915] : 0 };
+    perc: !!(flags >> 6 & 1), mspd: Math.max(1, Math.min(8, u16(A2.O_MSPD) || 1)), four: sd[A2.O_NTRK + 3] & 63, opl: hasX && sd[x + 912] === 0xA5 ? sd[x + 913] : 3, gvol: hasX && sd[x + 912] === 0xA5 ? Math.min(63, sd[x + 914]) : 63, vtab: hasX && sd[x + 912] === 0xA5 ? sd[x + 915] : 0,
+    /* AT2 volume scaling off: volumes are levels (FMY262's own files before 0.8.2 had no mark and always scaled) */
+    vdir: hasX ? ((sd[x + 916] & 0xF0) === 0xA0 ? sd[x + 916] & 1 : 0) : flags >> 7 & 1 ? 0 : 1 };
   return { song: normSong(song), ver, warn: [...new Set(warn)] };
 }
