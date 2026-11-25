@@ -1,7 +1,10 @@
 # FMY262
 
 **An OPL3 (YMF262) tracker for the M-VAVE FM-1**, as custom firmware, by Mr. Tracy Evans.
-[한국어](README.ko.md)
+
+<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">Install it from the browser</a></b> · <a href="https://jpark-spec.github.io/fmy262/">Workbench</a> · <a href="https://jpark-spec.github.io/fmy262/#songs">Songs (USB, A2M / RAD import)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">Try it in the browser</a> · <a href="../../releases">Releases</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#building">Building</a> · <a href="LICENSE">License (GPL-2.0)</a> · <a href="README.ko.md">한국어</a></p>
+
+---
 
 FMY262 turns the FM-1 into an 18-channel OPL3 tracker in the spirit of Adlib Tracker II: patterns, instruments
 with 2 or 4 operators, percussion mode, AT2 effects and macros, on the FM-1's 240×240 screen, knobs, buttons and
@@ -21,7 +24,7 @@ From the [latest release](../../releases/latest):
 | `fmy262-VERSION.zip` | `fmy262-VERSION.fwsc` (the firmware package), `fmy262-workbench-VERSION.html` (the songs page as one file), `fmy262-prototype-VERSION.html` (the browser prototype: the whole tracker on a drawn FM-1), licences and changelog |
 | `fmy262-workbench-site-VERSION.zip` | the workbench site (also published on this repository's GitHub Pages) |
 
-The **workbench** (GitHub Pages of this repository, or `npm run serve` after a build) has four tabs:
+The **workbench** ([jpark-spec.github.io/fmy262](https://jpark-spec.github.io/fmy262/), or `npm run serve` after a build) has four tabs, each with its own link (`#run`, `#songs`, `#install`, `#help`):
 
 - **Run** — the FMY262 firmware running in the browser (an emulator built from the same source)
 - **Songs** — the four song slots of the emulator or of an FM-1 on USB: import `.a2m`, `.rad` (1.0/2.1) or `.fmy`,

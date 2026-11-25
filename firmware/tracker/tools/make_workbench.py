@@ -190,6 +190,8 @@ def main(version="dev"):
     shutil.copy(BASE / "web" / "m-bootloader" / "LICENSE", out / "firmware" / "m-bootloader-LICENSE.txt")
     for lic in sorted((BASE / "LICENSES").glob("*.txt")):
         shutil.copy(lic, out / "firmware" / lic.name)
+    shutil.copy(ROOT / "LICENSE", out / "firmware" / "GPL-2.0.txt")   # FMY262's own licence, next to the package
+    shutil.copy(ROOT / "NOTICE.md", out / "firmware" / "NOTICE.md")
     st = stock_file()
     if st:
         shutil.copy(ROOT / "vendor" / "stock" / "FM-1.fwsc", out / "firmware" / "FM-1-stock.fwsc")

@@ -1,6 +1,10 @@
 # FMY262
 
-**M-VAVE FM-1용 OPL3(YMF262) 트래커** — 커스텀 펌웨어, 만든 이 Mr. Tracy Evans. [English](README.md)
+**M-VAVE FM-1용 OPL3(YMF262) 트래커** — 커스텀 펌웨어, 만든 이 Mr. Tracy Evans.
+
+<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">브라우저에서 설치하기</a></b> · <a href="https://jpark-spec.github.io/fmy262/">워크벤치</a> · <a href="https://jpark-spec.github.io/fmy262/#songs">곡 (USB, A2M / RAD 가져오기)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">브라우저에서 실행해 보기</a> · <a href="../../releases">릴리스</a> · <a href="CHANGELOG.md">변경 기록</a> · <a href="#빌드">빌드</a> · <a href="LICENSE">라이선스 (GPL-2.0)</a> · <a href="README.md">English</a></p>
+
+---
 
 FMY262는 FM-1을 Adlib Tracker II 방식의 18채널 OPL3 트래커로 바꿉니다. 패턴, 2·4 오퍼레이터 악기, 퍼커션 모드,
 AT2 이펙트와 매크로를 FM-1의 240×240 화면·노브·버튼·27건반으로 다룹니다. 워크벤치 웹 페이지에서 설치하고,
@@ -19,7 +23,7 @@ USB로 곡을 주고받고, Adlib Tracker II·Reality AdLib Tracker 곡을 가�
 | `fmy262-VERSION.zip` | `fmy262-VERSION.fwsc`(펌웨어 패키지), `fmy262-workbench-VERSION.html`(곡 페이지 한 파일), `fmy262-prototype-VERSION.html`(브라우저 프로토타입: 그려진 FM-1 위의 트래커 전체), 라이선스·변경 기록 |
 | `fmy262-workbench-site-VERSION.zip` | 워크벤치 사이트(이 저장소의 GitHub Pages에도 올라감) |
 
-**워크벤치** 탭: **실행**(브라우저에서 도는 FMY262 펌웨어), **곡**(에뮬레이터 또는 USB로 연결한 FM-1의 슬롯 4개 —
+**워크벤치**([jpark-spec.github.io/fmy262](https://jpark-spec.github.io/fmy262/); 탭마다 주소 `#run`·`#songs`·`#install`·`#help`) 탭: **실행**(브라우저에서 도는 FMY262 펌웨어), **곡**(에뮬레이터 또는 USB로 연결한 FM-1의 슬롯 4개 —
 `.a2m`·`.rad`(1.0/2.1)·`.fmy` 가져오기, `.a2m`·`.fmy`로 저장, 데모 곡), **펌웨어 설치**(Chrome·Edge의 WebSerial로
 설치, 순정으로 되돌리기), **도움말**.
 
