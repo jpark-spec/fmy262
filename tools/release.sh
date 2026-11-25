@@ -34,4 +34,4 @@ cp LICENSE NOTICE.md CHANGELOG.md "$OUT/"
 (cd release && zip -qr "fmy262-$V.zip" "fmy262-$V")
 (cd dist/workbench && zip -qr "$ROOT/release/fmy262-workbench-site-$V.zip" .)
 shasum -a 256 "$OUT/fmy262-$V.fwsc" "release/fmy262-$V.zip" "release/fmy262-workbench-site-$V.zip" | tee "release/SHA256SUMS-$V.txt"
-echo "release/: upload fmy262-$V.zip, fmy262-workbench-site-$V.zip and SHA256SUMS-$V.txt to the GitHub release v$V"
+echo "release/: upload fmy262-$V/fmy262-$V.fwsc (The Firmware Hub takes the .fwsc asset), fmy262-$V.zip, fmy262-workbench-site-$V.zip and SHA256SUMS-$V.txt to the GitHub release v$V"

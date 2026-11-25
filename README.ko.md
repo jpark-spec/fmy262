@@ -21,12 +21,18 @@ USB로 곡을 주고받고, Adlib Tracker II·Reality AdLib Tracker 곡을 가�
 
 | 파일 | 내용 |
 |---|---|
+| `fmy262-VERSION.fwsc` | 펌웨어 패키지만 따로(zip 안의 것과 같은 파일; The Firmware Hub가 설치하는 것) |
 | `fmy262-VERSION.zip` | `fmy262-VERSION.fwsc`(펌웨어 패키지), `fmy262-workbench-VERSION.html`(곡 페이지 한 파일), `fmy262-prototype-VERSION.html`(브라우저 프로토타입: 그려진 FM-1 위의 트래커 전체), 라이선스·변경 기록 |
 | `fmy262-workbench-site-VERSION.zip` | 워크벤치 사이트(이 저장소의 GitHub Pages에도 올라감) |
 
 **워크벤치**([jpark-spec.github.io/fmy262](https://jpark-spec.github.io/fmy262/); 탭마다 주소 `#run`·`#songs`·`#install`·`#help`) 탭: **실행**(브라우저에서 도는 FMY262 펌웨어), **곡**(에뮬레이터 또는 USB로 연결한 FM-1의 슬롯 4개 —
 `.a2m`·`.rad`(1.0/2.1)·`.fmy` 가져오기, `.a2m`·`.fmy`로 저장), **펌웨어 설치**(Chrome·Edge의 WebSerial로
 설치, 순정으로 되돌리기), **도움말**.
+
+**다른 펌웨어에서 올 때:** FMY262는 다른 펌웨어의 프로젝트·프리셋·샘플을 읽지 못하고, 곡 슬롯과 설정이 다른
+펌웨어가 저장에 쓰던 플래시 자리를 쓸 수 있다. 먼저 백업할 것(설치 탭이나 쓰던 펌웨어의 백업). 다른 펌웨어로
+돌아가는 것은 설치 탭이나 어느 설치기로든 되고, FMY262 곡은 다른 펌웨어가 덮어쓰기 전까지만 플래시에 남으니
+곡 탭에서 `.fmy`·`.a2m` 파일로 받아 둘 것.
 
 ## 조작 요약
 

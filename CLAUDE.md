@@ -32,10 +32,11 @@ M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건�
 
 ## 배포 (GitHub, 0.8.1부터)
 
-- 저장소 **github.com/jpark-spec/fmy262**(공개, 2026-11-25부터 Pages = **jpark-spec.github.io/fmy262**, 탭 주소 `#run`·`#songs`·`#install`·`#help`; pages.yml은 비공개면 건너뜀, 다시 게시는 `gh workflow run pages.yml -f tag=vX.Y.Z`). 커밋 이름 "Mr. Tracy Evans", 이메일은 GitHub noreply(이 폴더의 git 설정). 릴리스는 `FMY_REPO=https://github.com/jpark-spec/fmy262 tools/release.sh X.Y.Z` 뒤 `gh release create vX.Y.Z …`
+- 저장소 **github.com/jpark-spec/fmy262**(공개, 2026-11-25부터 Pages = **jpark-spec.github.io/fmy262**, 탭 주소 `#run`·`#songs`·`#install`·`#help`; pages.yml은 비공개면 건너뜀, 다시 게시는 `gh workflow run pages.yml -f tag=vX.Y.Z`). 커밋 이름 "Mr. Tracy Evans", 이메일은 GitHub noreply(이 폴더의 git 설정). 릴리스는 `FMY_REPO=https://github.com/jpark-spec/fmy262 tools/release.sh X.Y.Z` 뒤 `gh release create vX.Y.Z release/fmy262-X.Y.Z/fmy262-X.Y.Z.fwsc release/fmy262-X.Y.Z.zip release/fmy262-workbench-site-X.Y.Z.zip release/SHA256SUMS-X.Y.Z.txt …`(.fwsc를 따로 붙여야 The Firmware Hub가 가져감). 릴리스가 띄운 Pages 실행은 환경 보호로 실패하므로 `gh workflow run pages.yml -f tag=vX.Y.Z`
 - 저장소에는 소스만: `vendor/`·`dist/`·`release/`·빌드 결과·`tests/out`은 `.gitignore`. fm1-base(+ felucca-bsp 서브모듈)는 `tools/fetch-vendor.sh`가 고정 커밋으로 받음(커밋을 바꾸면 그 스크립트도)
 - 릴리스: 버전 올리기(아래 "버전" 셋 + `CHANGELOG.md`의 `## X.Y.Z` + `package.json`) → `tools/release.sh X.Y.Z` → `release/`의 `fmy262-X.Y.Z.zip`, `fmy262-workbench-site-X.Y.Z.zip`, `SHA256SUMS-X.Y.Z.txt`를 GitHub 릴리스 `vX.Y.Z`에 올림 → `.github/workflows/pages.yml`이 사이트 zip을 Pages에 게시(설정: Pages 소스 = GitHub Actions)
 - `.github/workflows/ci.yml`: 푸시마다 웹 빌드 + `npm test`(우분투; 펌웨어 빌드는 툴체인 때문에 안 함, t46·t48은 스스로 건너뜀)
+- **The Firmware Hub**(thefirmwarehub.com, 0.8.3부터 준비): 저장소 루트 `fmhub.json`(카드 문구·`docs/card.png` = 호스트 시뮬레이터의 9채널 재생 화면 240×240·색 #55FFFF·sounds "none – all synthesised": 프리셋 34개가 libADLMIDI 706개·AT2 instr 486개 뱅크와 하나도 안 겹침을 확인), 정체 FM-1_7800(허브에서 비어 있음 확인), USB 포트 이름 "FMY262 FM-1". 허브는 3시간마다 최신 릴리스의 .fwsc와 fmhub.json을 읽음. 등록 조건 중 실기 시험(V15에서 설치, 다른 펌웨어에서 설치, 다른 펌웨어로 떠나기, 쓰는 중 끊기)은 사람이 할 것
 - 문서: `README.md`(영문)·`README.ko.md`, `LICENSE`(GPL-2.0 전문), `NOTICE.md`(다른 사람 코드·따른 파일 형식). 오픈소스를 더 쓰면 NOTICE와 template.html `LICS` 둘 다에
 
 ## 버전

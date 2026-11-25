@@ -22,6 +22,7 @@ From the [latest release](../../releases/latest):
 
 | File | What |
 |---|---|
+| `fmy262-VERSION.fwsc` | the firmware package on its own (the same file as in the zip; what The Firmware Hub installs) |
 | `fmy262-VERSION.zip` | `fmy262-VERSION.fwsc` (the firmware package), `fmy262-workbench-VERSION.html` (the songs page as one file), `fmy262-prototype-VERSION.html` (the browser prototype: the whole tracker on a drawn FM-1), licences and changelog |
 | `fmy262-workbench-site-VERSION.zip` | the workbench site (also published on this repository's GitHub Pages) |
 
@@ -50,6 +51,12 @@ The screen tips (HELP in the settings) and the side panel of the prototype page 
 
 Songs are kept in the FM-1's flash in FMY262's own format (FMY1, `firmware/ui/songfile.h`); a save interrupted by a
 power cut leaves the old song or the new one, never a broken one.
+
+**Coming from another firmware:** FMY262 does not read the projects, presets or samples of other firmwares, and its
+song slots and settings take flash that another firmware may have used for its own saves. Back up first (the
+Install tab offers it, or your firmware's own backup). Going back to another firmware works from the Install tab or
+any installer; FMY262's songs stay in flash only until the other firmware writes over them, so keep them as `.fmy` or
+`.a2m` files from the Songs tab.
 
 ## Building
 

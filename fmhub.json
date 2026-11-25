@@ -1,0 +1,10 @@
+{
+  "what": "An OPL3 (YMF262) chip tracker in the spirit of Adlib Tracker II: 20 tracks on 18 FM voices with 4-op and percussion modes, AT2 effects, arpeggio and vibrato tables, FM register macros, a waveform view and four song slots. Imports Adlib Tracker II and RAD songs over USB.",
+  "author": "Mr. Tracy Evans",
+  "kinds": ["tracker"],
+  "play": "https://jpark-spec.github.io/fmy262/#run",
+  "cheat": "https://jpark-spec.github.io/fmy262/#help",
+  "image": "docs/card.png",
+  "color": "#55FFFF",
+  "sounds": "none – all synthesised"
+}
