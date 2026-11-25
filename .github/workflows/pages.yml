@@ -18,13 +18,10 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  deploy:
+  site:
     # (free GitHub Pages needs a public repository: skipped while it is private)
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Get the site from the release
         env:
@@ -35,8 +32,15 @@ jobs:
           mkdir site && unzip -q dl/fmy262-workbench-site-*.zip -d site
           test -f site/index.html
           test ! -e site/firmware/FM-1-stock.fwsc
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+  deploy:
+    needs: site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
