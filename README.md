@@ -1,4 +1,4 @@
-<p align="center">FMY262</p>
+<p align="center"><img src="assets/fmy262-title.png" alt="FMY262 — an OPL3 tracker for the M-VAVE FM-1" width="720"></p>
 
 <p align="center"><b></b>An OPL3 (YMF262) tracker for the M-VAVE FM-1<b></b>, as custom firmware, by Mr. Tracy Evans.</p>
 

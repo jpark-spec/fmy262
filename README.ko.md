@@ -1,8 +1,9 @@
-# FMY262
+<p align="center"><img src="assets/fmy262-title.png" alt="FMY262 — M-VAVE FM-1용 OPL3 트래커" width="720"></p>
 
-**M-VAVE FM-1용 OPL3(YMF262) 트래커** — 커스텀 펌웨어, 만든 이 Mr. Tracy Evans.
+<p align="center"><b></b>M-VAVE FM-1용 OPL3(YMF262) 트래커<b></b> — 커스텀 펌웨어, 만든 이 Mr. Tracy Evans.</p>
 
-<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">브라우저에서 설치하기</a></b> · <a href="https://jpark-spec.github.io/fmy262/">워크벤치</a> · <a href="https://jpark-spec.github.io/fmy262/#songs">곡 (USB, A2M / RAD 가져오기)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">브라우저에서 실행해 보기</a> · <a href="../../releases">릴리스</a> · <a href="CHANGELOG.md">변경 기록</a> · <a href="#빌드">빌드</a> · <a href="LICENSE">라이선스 (GPL-2.0)</a> · <a href="README.md">English</a></p>
+<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">브라우저에서 설치하기</a></b> · <a href="https://jpark-spec.github.io/fmy262/#songs">곡 (USB, A2M / RAD 가져오기)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">브라우저에서 실행해 보기</a><br>
+<a href="../../releases">릴리스</a> · <a href="CHANGELOG.md">변경 기록</a> · <a href="#빌드">빌드</a> · <a href="LICENSE">라이선스 (GPL-2.0)</a> · <a href="README.md">English</a></p>
 
 ---
 
