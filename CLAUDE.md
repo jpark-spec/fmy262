@@ -32,6 +32,7 @@ M-VAVE FM-1(240×240 화면, 노브 4 + 인코더 3 + MASTER, 버튼 12, 27건�
 
 ## 배포 (GitHub, 0.8.1부터)
 
+- 저장소 **github.com/jpark-spec/fmy262**(지금 비공개; 공개하면 Pages가 켜짐 — pages.yml은 비공개 동안 건너뜀). 커밋 이름 "Mr. Tracy Evans", 이메일은 GitHub noreply(이 폴더의 git 설정). 릴리스는 `FMY_REPO=https://github.com/jpark-spec/fmy262 tools/release.sh X.Y.Z` 뒤 `gh release create vX.Y.Z …`
 - 저장소에는 소스만: `vendor/`·`dist/`·`release/`·빌드 결과·`tests/out`은 `.gitignore`. fm1-base(+ felucca-bsp 서브모듈)는 `tools/fetch-vendor.sh`가 고정 커밋으로 받음(커밋을 바꾸면 그 스크립트도)
 - 릴리스: 버전 올리기(아래 "버전" 셋 + `CHANGELOG.md`의 `## X.Y.Z` + `package.json`) → `tools/release.sh X.Y.Z` → `release/`의 `fmy262-X.Y.Z.zip`, `fmy262-workbench-site-X.Y.Z.zip`, `SHA256SUMS-X.Y.Z.txt`를 GitHub 릴리스 `vX.Y.Z`에 올림 → `.github/workflows/pages.yml`이 사이트 zip을 Pages에 게시(설정: Pages 소스 = GitHub Actions)
 - `.github/workflows/ci.yml`: 푸시마다 웹 빌드 + `npm test`(우분투; 펌웨어 빌드는 툴체인 때문에 안 함, t46·t48은 스스로 건너뜀)
