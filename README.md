@@ -29,7 +29,7 @@ The **workbench** ([jpark-spec.github.io/fmy262](https://jpark-spec.github.io/fm
 
 - **Run** — the FMY262 firmware running in the browser (an emulator built from the same source)
 - **Songs** — the four song slots of the emulator or of an FM-1 on USB: import `.a2m`, `.rad` (1.0/2.1) or `.fmy`,
-  save as `.a2m` or `.fmy`, put in the demo song
+  save as `.a2m` or `.fmy`
 - **Install** — install FMY262 on the FM-1 over USB (Chrome or Edge, WebSerial), or go back to M-VAVE's firmware
 - **Help**
 

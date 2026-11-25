@@ -128,7 +128,7 @@ const TEXT = {
     pickTarget: 'Choose a target and connect.',
     installNote: 'fm1-base\'s installer (Chrome or Edge, Web MIDI). Before installing, it is safest to save your songs as .fmy from the Songs tab: installing usually leaves the storage as it is, but another firmware may erase it.',
     help1: '<b>Run</b> · The same code as on the FM-1 runs here, so sound and screen match the device (unlike the older web prototype). The emulator\'s slots are kept in this browser.',
-    help2: '<b>Songs</b> · With "FMY262 in the browser" the four slots of the emulator in the Run tab, with "FM-1 (USB)" those of the device connected by USB. "Import" takes an .a2m (Adlib Tracker II), .rad (Reality AdLib Tracker 1.0/2.1) or .fmy file, or drop one on a slot: it is converted to FMY262\'s format and sent. "Demo song" puts in the built-in demo. "Save A2M" gives an .a2m that Adlib Tracker II opens, ".fmy" the file as it is. A slot holds up to 61,376 bytes (a usual song is a few KB).',
+    help2: '<b>Songs</b> · With "FMY262 in the browser" the four slots of the emulator in the Run tab, with "FM-1 (USB)" those of the device connected by USB. "Import" takes an .a2m (Adlib Tracker II), .rad (Reality AdLib Tracker 1.0/2.1) or .fmy file, or drop one on a slot: it is converted to FMY262\'s format and sent. "Save A2M" gives an .a2m that Adlib Tracker II opens, ".fmy" the file as it is. A slot holds up to 61,376 bytes (a usual song is a few KB).',
     help3: 'Writes and deletes are refused while it plays. On the device, load a song you sent with SAVE → slot → SEL (the song being edited stays as it is). The device replaces a slot only after its CRC checks, so a cut transfer leaves the old song.',
     help4: '<b>Install firmware</b> · Connect the FM-1 by USB and follow the installer. From the command line, in fm1-base: <code>tools/fm1_install.py fmy262.fwsc</code>.',
     help5: 'This page uses fm1-base\'s (MPL-2.0) emulator, installer, companion client and port finder (© Charles Vestal, Henri David, Chris Farrell, Leo Kuroshita and others). The FMY262 firmware is GPL-2.0-or-later (<a href="firmware/GPL-2.0.txt" target="_blank" rel="noopener">licence text</a>, <a href="firmware/NOTICE.md" target="_blank" rel="noopener">notices</a>).',
@@ -142,10 +142,9 @@ const TEXT = {
     noDev: 'FMY262 not found. Check the USB connection and the firmware.',
     connected: 'Connected: {name} {ver} ({where})', browser: 'browser', lostConn: 'The connection was lost.',
     noName: '(no name)', empty: 'Empty', bytes: '{n} bytes · {file}',
-    bImport: 'Import', bDemo: 'Demo song', bA2M: 'Save A2M', bFmy: '.fmy', bDelete: 'Delete',
+    bImport: 'Import', bA2M: 'Save A2M', bFmy: '.fmy', bDelete: 'Delete',
     savedA2M: 'Saved slot {k}\'s song as A2M.', savedFmy: 'Saved slot {k}\'s song as .fmy.',
     askDelete: 'Delete the song in slot {k} ({name})? This cannot be undone.', deleted: 'Deleted the song in slot {k}.',
-    demoName: 'Demo song',
     tooBig: '{what}: {n} bytes, more than a slot holds ({room}).',
     askSend: '{what} → slot {k}', over: ' (over the song there now, {name})', cut: '\n\nLeft out:\n· {list}', sendQ: '\n\nSend it?',
     sending: 'Sending: {what}…',
@@ -162,7 +161,7 @@ const TEXT = {
     pickTarget: '대상을 고르고 연결하세요.',
     installNote: 'fm1-base의 설치 페이지입니다(Chrome이나 Edge, Web MIDI). 설치 전에 곡은 "곡" 탭에서 .fmy로 받아 두면 안전합니다: 설치해도 저장 영역은 보통 그대로지만, 다른 펌웨어를 깔면 지워질 수 있습니다.',
     help1: '<b>실행</b> · FM-1에 들어가는 것과 같은 코드가 돕니다(예전 웹 프로토타입과 달리 기기와 소리·화면이 같습니다). 에뮬레이터의 슬롯은 이 브라우저에 저장됩니다.',
-    help2: '<b>곡</b> · 대상이 "브라우저의 FMY262"면 실행 탭의 에뮬레이터, "FM-1 (USB)"면 USB로 연결한 기기의 슬롯 4개를 다룹니다. "가져오기"로 .a2m(Adlib Tracker II), .rad(Reality AdLib Tracker 1.0/2.1) 또는 .fmy를 고르거나 슬롯 위로 끌어다 놓으면 FMY262 형식으로 바꿔 보냅니다. "데모 곡"은 내장 데모를 넣습니다. "A2M 저장"은 Adlib Tracker II에서 열 수 있는 .a2m으로, ".fmy"는 원본 그대로 받습니다. 슬롯 하나에 61,376바이트까지(보통 곡은 몇 KB).',
+    help2: '<b>곡</b> · 대상이 "브라우저의 FMY262"면 실행 탭의 에뮬레이터, "FM-1 (USB)"면 USB로 연결한 기기의 슬롯 4개를 다룹니다. "가져오기"로 .a2m(Adlib Tracker II), .rad(Reality AdLib Tracker 1.0/2.1) 또는 .fmy를 고르거나 슬롯 위로 끌어다 놓으면 FMY262 형식으로 바꿔 보냅니다. "A2M 저장"은 Adlib Tracker II에서 열 수 있는 .a2m으로, ".fmy"는 원본 그대로 받습니다. 슬롯 하나에 61,376바이트까지(보통 곡은 몇 KB).',
     help3: '재생 중에는 쓰기·지우기를 받지 않습니다. 보낸 곡은 기기에서 SAVE → 슬롯 → SEL로 불러옵니다(편집 중인 곡은 그대로). 기기는 CRC로 확인한 뒤에만 슬롯을 바꾸므로, 중간에 끊겨도 옛 곡이 남습니다.',
     help4: '<b>펌웨어 설치</b> · FM-1을 USB로 꽂고 설치 페이지의 안내를 따릅니다. 명령줄로는 fm1-base에서 <code>tools/fm1_install.py fmy262.fwsc</code>.',
     help5: '이 페이지는 fm1-base(MPL-2.0)의 에뮬레이터, 설치 페이지, companion 클라이언트, 포트 찾기를 씁니다(© Charles Vestal, Henri David, Chris Farrell, Leo Kuroshita 외). FMY262 펌웨어는 GPL-2.0 이상입니다(<a href="firmware/GPL-2.0.txt" target="_blank" rel="noopener">라이선스 전문</a>, <a href="firmware/NOTICE.md" target="_blank" rel="noopener">고지</a>).',
@@ -176,10 +175,9 @@ const TEXT = {
     noDev: 'FMY262를 찾지 못했습니다. USB 연결과 펌웨어를 확인하세요.',
     connected: '연결됨: {name} {ver} ({where})', browser: '브라우저', lostConn: '연결이 끊겼습니다.',
     noName: '(이름 없음)', empty: '비어 있음', bytes: '{n} 바이트 · {file}',
-    bImport: '가져오기', bDemo: '데모 곡', bA2M: 'A2M 저장', bFmy: '.fmy', bDelete: '지우기',
+    bImport: '가져오기', bA2M: 'A2M 저장', bFmy: '.fmy', bDelete: '지우기',
     savedA2M: '슬롯 {k}의 곡을 A2M으로 저장했습니다.', savedFmy: '슬롯 {k}의 곡을 .fmy로 저장했습니다.',
     askDelete: '슬롯 {k}의 곡({name})을 지울까요? 되돌릴 수 없습니다.', deleted: '슬롯 {k}의 곡을 지웠습니다.',
-    demoName: '데모 곡',
     tooBig: '{what}: {n} 바이트라 슬롯({room})에 들어가지 않습니다.',
     askSend: '{what} → 슬롯 {k}', over: ' (지금 있는 곡 {name} 위에 덮어씁니다)', cut: '\n\n잘리는 것:\n· {list}', sendQ: '\n\n보낼까요?',
     sending: '보내는 중: {what}…',
@@ -295,7 +293,6 @@ function draw() {
     const acts = el.querySelector('.acts'), on = !!comp && !s.off;
     const btn = (t, f, en = true) => { const b = document.createElement('button'); b.textContent = t; b.disabled = !on || !en; b.onclick = () => f(s, el); acts.append(b); };
     btn(T('bImport'), pick);
-    btn(T('bDemo'), demo);
     btn(T('bA2M'), saveA2M, !!s.size);
     btn(T('bFmy'), saveFmy, !!s.size);
     btn(T('bDelete'), remove, !!s.size);
@@ -332,7 +329,6 @@ function pick(s, el) {
   i.onchange = () => i.files[0] && sendFile(s, el, i.files[0]);
   i.click();
 }
-function demo(s, el) { const g = demoSong(); g.name = 'DEMO'; return sendSong(s, el, g, [], T('demoName')); }
 
 /* a file from the computer: an A2M turned into FMY1 here, an .fmy checked */
 async function sendFile(s, el, file) {

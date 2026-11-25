@@ -25,7 +25,7 @@ USB로 곡을 주고받고, Adlib Tracker II·Reality AdLib Tracker 곡을 가�
 | `fmy262-workbench-site-VERSION.zip` | 워크벤치 사이트(이 저장소의 GitHub Pages에도 올라감) |
 
 **워크벤치**([jpark-spec.github.io/fmy262](https://jpark-spec.github.io/fmy262/); 탭마다 주소 `#run`·`#songs`·`#install`·`#help`) 탭: **실행**(브라우저에서 도는 FMY262 펌웨어), **곡**(에뮬레이터 또는 USB로 연결한 FM-1의 슬롯 4개 —
-`.a2m`·`.rad`(1.0/2.1)·`.fmy` 가져오기, `.a2m`·`.fmy`로 저장, 데모 곡), **펌웨어 설치**(Chrome·Edge의 WebSerial로
+`.a2m`·`.rad`(1.0/2.1)·`.fmy` 가져오기, `.a2m`·`.fmy`로 저장), **펌웨어 설치**(Chrome·Edge의 WebSerial로
 설치, 순정으로 되돌리기), **도움말**.
 
 ## 조작 요약
