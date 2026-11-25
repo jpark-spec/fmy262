@@ -1,8 +1,9 @@
-# FMY262
+<p align="center">FMY262</p>
 
-**An OPL3 (YMF262) tracker for the M-VAVE FM-1**, as custom firmware, by Mr. Tracy Evans.
+<p align="center"><b></b>An OPL3 (YMF262) tracker for the M-VAVE FM-1<b></b>, as custom firmware, by Mr. Tracy Evans.</p>
 
-<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">Install it from the browser</a></b> · <a href="https://jpark-spec.github.io/fmy262/">Workbench</a> · <a href="https://jpark-spec.github.io/fmy262/#songs">Songs (USB, A2M / RAD import)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">Try it in the browser</a> · <a href="../../releases">Releases</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#building">Building</a> · <a href="LICENSE">License (GPL-2.0)</a> · <a href="README.ko.md">한국어</a></p>
+<p align="center"><b><a href="https://jpark-spec.github.io/fmy262/#install">Install it from the browser</a></b> · <a href="https://jpark-spec.github.io/fmy262/#songs">Songs (USB, A2M / RAD import)</a> · <a href="https://jpark-spec.github.io/fmy262/#run">Try it in the browser</a><br>
+<a href="../../releases">Releases</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#building">Building</a> · <a href="LICENSE">License (GPL-2.0)</a> · <a href="README.ko.md">한국어</a></p>
 
 ---
 
