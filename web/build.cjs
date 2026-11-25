@@ -1,4 +1,4 @@
-const fs=require('fs');let t=fs.readFileSync('template.html','utf8');
+const fs=require('fs');fs.mkdirSync('../dist',{recursive:true});let t=fs.readFileSync('template.html','utf8');
 const m={'/*OPL*/':'opl3fn.js','/*ENGINE*/':'engine.js','/*DEMO*/':'demo.js','/*PRESETS*/':'presets.js','/*EXPORT*/':'export.js','/*RAD*/':'rad.js','/*FONT*/':'font.js'};
 for(const k in m) t=t.replace(k,()=>fs.readFileSync(m[k],'utf8'));
 fs.writeFileSync('../dist/fm1-opl3-tracker.html',t);console.log('ok',t.length);

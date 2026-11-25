@@ -5,7 +5,7 @@
   "scripts": {
     "build": "cd web && node build.cjs",
     "build:opl3": "sh opl3/build-wasm.sh",
-    "test": "cd tests && node t24.cjs && node t27.cjs && node t34.cjs && node t35.cjs && node t36.cjs && node t37.cjs && node t30.cjs && node t42.cjs && node t43.cjs && node t44.cjs && node t45.cjs && node t46.cjs && node t47.cjs && node t48.cjs",
+    "test": "cd tests && mkdir -p out && node t24.cjs && node t27.cjs && node t34.cjs && node t35.cjs && node t36.cjs && node t37.cjs && node t30.cjs && node t42.cjs && node t43.cjs && node t44.cjs && node t45.cjs && node t46.cjs && node t47.cjs && node t48.cjs",
     "build:dbopl": "sh opl3/build-dbopl-wasm.sh",
     "workbench": "npm run build && cd vendor/fm1-base && PATH=$HOME/.docker/bin:$PATH .venv/bin/python tools/build.py ../../firmware/tracker >/dev/null && .venv/bin/python tools/build.py --web ../../firmware/tracker >/dev/null && cd ../.. && python3 firmware/tracker/tools/make_workbench.py",
     "serve": "python3 -m http.server 8262 --bind 127.0.0.1 -d dist/workbench",
