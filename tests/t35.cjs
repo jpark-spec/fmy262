@@ -1,0 +1,10 @@
+process.chdir(require('path').join(__dirname,'../web'));
+const fs=require('fs');
+eval(fs.readFileSync('opl3fn.js','utf8')+fs.readFileSync('engine.js','utf8')+fs.readFileSync('demo.js','utf8')+fs.readFileSync('export.js','utf8')+';global.E=Engine;global.D={demoSong,emptyPattern,exportA2M,importA2M,normSong};');
+const s=D.demoSong(); s.perc=true; const P=D.emptyPattern(64); s.patterns=[P]; s.order=[0];
+for(let r=0;r<64;r+=4){ P[r][15]=[36,1,-1,0,-1,0]; } for(let r=2;r<64;r+=4) P[r][19]=[72,3,-1,0,-1,0]; for(let r=4;r<64;r+=8) P[r][16]=[60,2,-1,0,-1,0];
+const bdw=[]; const e=new E(49716,makeOPL,()=>{}); const ow=e.w; e.w=(r,v)=>{ if(r===0xBD) bdw.push(v.toString(16)); ow(r,v); };
+e.handle({t:'song',song:s}); e.handle({t:'play',ord:0,row:0});
+const N=49716, L=new Float32Array(N*2), R=new Float32Array(N*2); e.render(L,R,N*2); let m=0; for(const v of L) m=Math.max(m,Math.abs(v));
+console.log('BD writes', bdw.slice(0,12).join(' '), 'peak', m.toFixed(3));
+const r=D.importA2M(D.exportA2M(s)).song; console.log('perc roundtrip', r.perc, JSON.stringify(r.patterns[0][0][15]), JSON.stringify(r.patterns[0][2][19]));

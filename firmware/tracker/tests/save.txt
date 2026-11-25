@@ -1,0 +1,40 @@
+# FMY262 on the host: a song saved to slot 1, settings changed, the power off and on: back as saved
+wait 500
+tap SEL
+wait 50
+tap SAVE
+wait 50
+tap SAVE
+wait 50
+tapkey 0
+wait 50
+tapkey 7
+wait 50
+tap SAVE
+wait 1500
+shot saved.png
+tap REC
+tapkey 4
+tap REC
+wait 100
+shot changed.png
+press HOME
+wait 900
+release HOME
+wait 50
+turn K1 3
+wait 50
+tap HOME
+wait 300
+shot themed.png
+power
+wait 800
+shot boot_splash.png
+tap SEL
+wait 100
+shot after_power.png
+press HOME
+tap GLO
+release HOME
+wait 100
+shot file_after.png

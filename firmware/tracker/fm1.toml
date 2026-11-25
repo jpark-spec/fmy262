@@ -1,0 +1,22 @@
+# FMY262 (fm1-base tools/build.py): the OPL3 tracker on the FM-1 (named after the chip, YMF262), engine + DBOPL + the screen (firmware/ui)
+name = "FMY262"
+id_prefix = "FM-1_78"          # dev build FM-1_7800 (its own identity, apart from OPL3 PLAYER's FM-1_77)
+usb_manufacturer = "fm1-opl3-tracker"
+usb_product = "FMY262 FM-1"
+o2 = ["../engine/eng.c", "../engine/songmem.c", "../ui/ui.c", "../ui/uisong.c", "../ui/songfile.c", "../ui/slots.c",
+      "../opl3bench/emu/db_spec.c", "../opl3bench/emu/db_abort.c"]
+o2_cflags = ["-DDBOPL_PRE", "-DDBOPL_SCOPE", "-DUI_SWAP"]   # DBOPL's tables made ahead, its per-channel capture (the waveform screen); the screen's pixels byte-swapped, as the panel takes them
+include = ["../engine", "../ui", "../player", "../opl3bench/emu", "../opl3bench/emu/dbopl"]
+device_include = ["../../opl3/inc"]
+words = "words.tsv"
+ble = false
+headphones = true
+cpu2 = true                    # the second core renders OPL bank 1 (docs/SECOND-CORE.md; SYS · CORE SINGLE turns it off)
+cpu2_fallback = true           # it failing: one core until power-off, no restart
+companion = true               # the song slots as files over USB (docs/COMPANION.md): the workbench page (web/workbench.html)
+usb_audio_in = false
+usb_audio_out = false
+author = "fm1-opl3-tracker"
+description = "FMY262, an OPL3 tracker: the browser prototype's screen and controls with its engine and DBOPL in the audio interrupt."
+tags = ["sequencer", "fm"]
+licence = "GPL-2.0-or-later"    # DBOPL (emu/dbopl/dbopl.c)

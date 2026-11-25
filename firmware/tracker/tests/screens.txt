@@ -1,0 +1,22 @@
+# FMY262 on the host: build/host/fmy262_host tests/screens.txt build/shots
+master 2048
+wait 800
+shot splash.png
+tap SEL
+wait 100
+shot pat.png
+turn SELECT 5
+wait 100
+shot pat_sel.png
+wav play.wav
+tap PLAY
+wait 3000
+shot play.png
+wavstop
+tap PLAY
+tap ENV
+wait 100
+shot ins.png
+tap GLO
+wait 100
+shot glo.png

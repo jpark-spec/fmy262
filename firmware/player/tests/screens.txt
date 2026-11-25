@@ -1,0 +1,12 @@
+# OPL3 PLAYER on the host: build/host/opl3player_host tests/screens.txt build/shots
+master 2048
+wait 600
+shot stop.png
+wav demo.wav
+tap PLAY
+wait 6000
+shot play.png
+wavstop
+tap PLAY
+wait 400
+shot stopped.png

@@ -1,0 +1,18 @@
+# OPL3 PLAYER (fm1-base tools/build.py)
+name = "OPL3PLAYER"
+id_prefix = "FM-1_77"          # dev build FM-1_7700 (a test firmware's own identity, as OPL3 BENCH)
+usb_manufacturer = "fm1-opl3-tracker"
+usb_product = "OPL3 PLAYER FM-1"
+o2 = ["../engine/eng.c", "../engine/songmem.c", "../opl3bench/emu/db_spec.c", "../opl3bench/emu/db_abort.c"]   # engine and emulator at -O2
+o2_cflags = ["-DDBOPL_PRE"]    # DBOPL's float-made tables from emu/dbopl/dbopl_pre.h (no double FPU)
+include = ["../engine", "../opl3bench/emu", "../opl3bench/emu/dbopl"]
+device_include = ["../../opl3/inc"]   # the few libc headers (the JieLi toolchain has none)
+words = "words.tsv"
+ble = false
+headphones = true              # the jack read (plat_headphones): on the screen and in the log
+usb_audio_in = false
+usb_audio_out = false
+author = "fm1-opl3-tracker"
+description = "The OPL3 tracker's engine with DBOPL in the audio interrupt: plays the demo song, its load on the screen."
+tags = ["utility"]
+licence = "GPL-2.0-or-later"    # DBOPL (emu/dbopl/dbopl.c)

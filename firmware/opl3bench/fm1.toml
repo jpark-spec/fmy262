@@ -1,0 +1,23 @@
+# OPL3 BENCH (fm1-base tools/build.py)
+name = "OPL3BENCH"
+id_prefix = "FM-1_77"          # dev build FM-1_7700 (a test firmware's own identity)
+usb_manufacturer = "fm1-opl3-tracker"
+usb_product = "OPL3 BENCH FM-1"
+o2 = ["../../opl3/opl3.c", "emu/*.c", "../../vendor/libADLMIDI/src/chips/nuked_fast/nukedopl3_fast.c"]   # the emulators at -O2
+o2_cflags = ["-DDBOPL_PRE"]    # emu/dbopl/dbopl.c: its float-made tables from emu/dbopl/dbopl_pre.h (no double FPU)
+include = ["../../opl3", "emu", "emu/dbopl", "../../vendor/libADLMIDI/src/chips/nuked_fast"]
+device_include = ["../../opl3/inc"]   # the few libc headers Nuked includes (the JieLi toolchain has none)
+# emu/db_ram.c: DBOPL's render in RAM calls its synth and volume handlers through pointers; every target is a static
+# of the same file and itself in .app_ram (checked in opl3bench.dis: the dbr_ copies sit at 0x1c0....)
+ram_code_allow = ["dbr_Chip__GenerateBlock3", "dbr_Channel__BlockTemplate_sm2FM", "dbr_Channel__BlockTemplate_sm2AM",
+    "dbr_Channel__BlockTemplate_sm3FM", "dbr_Channel__BlockTemplate_sm3AM", "dbr_Channel__BlockTemplate_sm3FMFM",
+    "dbr_Channel__BlockTemplate_sm3AMFM", "dbr_Channel__BlockTemplate_sm3FMAM", "dbr_Channel__BlockTemplate_sm3AMAM",
+    "dbr_Channel__BlockTemplate_sm2Percussion", "dbr_Channel__BlockTemplate_sm3Percussion"]
+words = "words.tsv"
+ble = false                    # nothing but the OPL3 in the way of the measurement
+usb_audio_in = false
+usb_audio_out = false
+author = "fm1-opl3-tracker"
+description = "Benchmark: 0-18 OPL3 channels from Nuked OPL3 in the audio interrupt, the load on the screen."
+tags = ["utility"]
+licence = "LGPL-2.1"

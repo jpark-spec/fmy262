@@ -1,0 +1,21 @@
+# dependencies and fetched sources (tools/fetch-vendor.sh)
+node_modules/
+vendor/
+
+# build output (npm run build, tools/release.sh, fm1-base builds)
+dist/
+release/
+firmware/*/build/
+opl3/opl3.wasm
+opl3/opl3.mjs
+opl3/dbopl.wasm
+opl3/dbopl.mjs
+
+# test output
+tests/out/
+
+# local
+.DS_Store
+midi_out.txt
+.claude/settings.local.json
+.claude/

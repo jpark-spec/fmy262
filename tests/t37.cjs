@@ -1,0 +1,12 @@
+process.chdir(require('path').join(__dirname,'../web'));
+const fs=require('fs');
+eval(fs.readFileSync('opl3fn.js','utf8')+fs.readFileSync('engine.js','utf8')+fs.readFileSync('demo.js','utf8')+fs.readFileSync('export.js','utf8')+';global.E=Engine;global.D={demoSong,emptyPattern,exportA2M,importA2M,normSong};');
+const s=D.demoSong(); const P=D.emptyPattern(64); s.patterns=[P]; s.order=[0]; s.four=1;
+const N=JSON.parse(JSON.stringify(s.inst[7])); N.four=true; N.con=0; const Q=JSON.parse(JSON.stringify(s.inst[7])); Q.con=0; s.inst=[N,Q].concat(s.inst);
+P[0][0]=[60,1,-1,0,-1,0]; P[0][1]=[-1,2,-1,0,-1,0];
+const w=[]; const e=new E(49716,makeOPL,()=>{}); const ow=e.w; e.w=(r,v)=>{ if(r===0x104||r===0xB0||r===0xB3) w.push(r.toString(16)+'='+v.toString(16)); ow(r,v); };
+e.handle({t:'song',song:s}); e.handle({t:'play',ord:0,row:0});
+const n=49716, L=new Float32Array(n), R=new Float32Array(n); e.render(L,R,n); let m=0; for(let i=0;i<L.length;i++) m=Math.max(m,Math.abs(L[i]),Math.abs(R[i]));
+console.log(w.slice(0,10).join(' '), 'peak', m.toFixed(3));
+const r=D.importA2M(D.exportA2M(s)).song; console.log('4op roundtrip', r.four, r.inst[0].four, !!r.inst[1].four);
+fs.writeFileSync('../tests/out/4op.a2m', D.exportA2M(s));

@@ -1,0 +1,17 @@
+# OPL3 BENCH on the host: build/host/opl3bench_host tests/screens.txt build/shots
+master 1024
+wait 1200
+shot nuked.png
+wav fast.wav
+turn PRESET 1
+wait 1200
+shot fast.png
+wavstop
+wav dbopl.wav
+turn PRESET 1
+wait 1200
+shot dbopl.png
+wavstop
+turn K1 -9
+wait 600
+shot dbopl-ch9.png

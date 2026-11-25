@@ -1,0 +1,23 @@
+# Builds the web pages and runs the tests on every push and pull request. The firmware itself is not built here
+# (it needs the JieLi toolchain); t46 (USB on fm1-base's host simulator) and t48 (needs AdPlug) skip themselves.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: tools/fetch-vendor.sh
+      - run: npm run build
+      - run: npm test
+        env:
+          CHROME: /usr/bin/google-chrome

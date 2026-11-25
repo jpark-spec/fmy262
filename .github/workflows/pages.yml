@@ -1,0 +1,39 @@
+# Publishes the workbench site of a release on GitHub Pages: the asset fmy262-workbench-site-VERSION.zip that
+# tools/release.sh made and that was uploaded to the release. (Settings → Pages → Source: GitHub Actions.)
+name: pages
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: release tag to publish (e.g. v0.8.1)
+        required: true
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Get the site from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'fmy262-workbench-site-*.zip' --dir dl
+          mkdir site && unzip -q dl/fmy262-workbench-site-*.zip -d site
+          test -f site/index.html
+          test ! -e site/firmware/FM-1-stock.fwsc
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

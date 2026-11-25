@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMY262 · FM-1 OPL3 트래커</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a hardware prototype on a workbench, precise and a little playful
+   IDEA: the FM-1 running a DOS-era AdLib tracker on its tiny screen
+   PICTURE: the device itself, working, with a VGA-blue tracker screen
+   COLOUR and TYPE: warm bench grey, charcoal device, VGA blue; IBM Plex Mono + IBM Plex Sans KR
+   LAYOUT: device left (the tool), notes and key map right; stacks under 1100px */
+:root{color-scheme:light dark;--bg:light-dark(#e6e1d8,#141518);--ink:light-dark(#1b1c1f,#e9e6e0);--mute:light-dark(#5d5a55,#a29e97);--line:light-dark(#cbc4b8,#2c2e33);--card:light-dark(#f2eee7,#1c1e22);--acc:#ff5a36}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans KR",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(20px,3vw,44px) max(4vw,14px);display:grid;grid-template-columns:minmax(0,760px) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+@media(max-width:1100px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.dev{background:linear-gradient(160deg,#34363b,#1d1e21 60%);border-radius:26px;padding:22px;box-shadow:0 1px 0 #4a4d53 inset,0 30px 60px -24px rgba(0,0,0,.55),0 8px 18px -8px rgba(0,0,0,.4);color:#d8d6d2;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.top{display:grid;grid-template-columns:92px auto minmax(0,1fr);gap:18px;align-items:center}
+.lp{display:grid;gap:10px;justify-items:center}.lp .kl{margin-top:5px;font-size:9.5px}
+.knob.sm{width:50px;height:50px}.knob.sm i{top:5px;height:13px}
+.knob.pot{width:40px;height:40px;background:radial-gradient(circle at 35% 30%,#d9d6cf,#8f8c86 70%);box-shadow:0 4px 8px -3px #000,0 0 0 3px #121315}.knob.pot i{top:4px;height:11px;background:#222}
+.octs{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}.btn.sb{height:34px;font-size:9.5px}
+.bezel{background:#08080a;border-radius:12px;padding:12px;box-shadow:0 0 0 1px #000,0 1px 0 #55585e}
+canvas#scr{display:block;width:360px;max-width:calc(100vw - 84px);aspect-ratio:1;image-rendering:auto;border-radius:3px;background:#0000aa}
+.knobs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 10px;justify-items:center}
+.knob{width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#5b5e64,#26282c 70%);box-shadow:0 6px 10px -4px #000,0 0 0 4px #121315,0 0 0 5px #3b3e43;position:relative;cursor:ns-resize;touch-action:none}
+.knob i{position:absolute;left:50%;top:7px;width:4px;height:18px;margin-left:-2px;border-radius:2px;background:#f1efe9}
+.knob:focus-visible,.btn:focus-visible,.k:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.kl{font:700 12px "IBM Plex Mono",monospace;color:#9b9a96;text-align:center;margin-top:8px}
+.btns{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 10px;margin:20px 0 18px}
+.btn{height:46px;border:0;border-radius:9px;background:linear-gradient(#45484e,#2b2d31);color:#ecebe7;font:700 11px "IBM Plex Mono",monospace;letter-spacing:.02em;box-shadow:0 3px 0 #111,0 0 0 1px #000;cursor:pointer;position:relative;touch-action:none;padding:0}
+.btn.on{transform:translateY(2px);box-shadow:0 1px 0 #111,0 0 0 1px #000}
+.btn b{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;background:#3c3f44}
+.btn b.lit{background:var(--led,#4be38a);box-shadow:0 0 8px var(--led,#4be38a)}
+.dev[data-leds="1"] .btn b:not(.lit){background:#4be38a2a}.dev[data-leds="2"] .btn b:not(.lit){background:#4be38a55}
+.dev[data-leds="3"] .btn b:not(.lit){background:#4be38a;box-shadow:0 0 6px #4be38a}.dev[data-leds="4"] .btn b:not(.lit){background:#4be38a2a}.dev[data-leds="5"] .btn b:not(.lit){background:#4be38a66}
+.dev[data-leds="3"] .btn b.lit,.dev[data-leds="4"] .btn b.lit,.dev[data-leds="5"] .btn b.lit{background:#3c3f44;box-shadow:none}
+.kb{position:relative;height:124px;display:flex;gap:3px;touch-action:none}
+.k{flex:1;background:linear-gradient(#f4f2ee,#d9d6cf);border-radius:0 0 7px 7px;box-shadow:0 4px 0 #9d9a93 inset,0 2px 0 #111;position:relative;cursor:pointer}
+.k.bk{position:absolute;top:0;height:74px;background:linear-gradient(#2c2e32,#121315);border-radius:0 0 6px 6px;box-shadow:0 3px 0 #000;z-index:2}
+.k.play{background:linear-gradient(#c6f2ff,#84d8ff)}.k.bk.play{background:linear-gradient(#5ac8ff,#1b7ac2)}.k.down{background:linear-gradient(#ffd2c6,#ff9c84)}.k.bk.down{background:linear-gradient(#ff7a5a,#c2381b)}
+.k em{position:absolute;left:0;right:0;bottom:24px;text-align:center;font:700 9px "IBM Plex Mono",monospace;font-style:normal;color:#c2381b;letter-spacing:-.04em;pointer-events:none}.k.bk em{bottom:8px;color:#ffb39f}
+.k span{position:absolute;bottom:7px;left:0;right:0;text-align:center;font:700 10px "IBM Plex Mono",monospace;color:#8d8a83}
+.hint{margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25);font:400 12px/1.6 system-ui,sans-serif;color:#cfcdc6;min-height:3.2em}.hint b{color:#ffd34a;font-weight:600;margin-right:4px}
+.cap{display:flex;justify-content:space-between;gap:12px;font:500 11px "IBM Plex Mono",monospace;color:#8f8e8a;margin-top:12px;flex-wrap:wrap}
+.side h1{font-weight:700;font-size:clamp(30px,3.4vw,40px);line-height:1.08;margin:4px 0 10px;text-wrap:balance}
+.side p{margin:0 0 12px;max-width:62ch}.small{font-size:13px;color:var(--mute)}
+.side h2{font-size:17px;margin:26px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--mute);font-weight:600}
+kbd,code{font:500 13px "IBM Plex Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:5px;padding:1px 5px;white-space:nowrap}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.ui{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 15px "IBM Plex Sans KR",sans-serif;cursor:pointer}
+.ui.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ui:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+textarea{width:100%;min-height:120px;font:13px/1.4 "IBM Plex Mono",monospace;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+details{margin-top:10px}summary{cursor:pointer;font-weight:600;min-height:32px}
+#stat{font:500 12px "IBM Plex Mono",monospace;color:var(--mute)}
+@media(max-width:760px){.dev{padding:14px;border-radius:20px}.top{grid-template-columns:minmax(0,1fr)}.bezel{justify-self:center;order:-1}.lp{grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;width:100%}.octs{grid-template-columns:1fr;gap:4px}.knobs{grid-template-columns:repeat(4,minmax(0,1fr))}.knob{width:58px;height:58px}.knob.sm{width:44px;height:44px}.btns{gap:6px}.btn{font-size:10px}.kb{height:100px}.k span{display:none}}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
+<div class="wrap">
+  <section class="dev" aria-label="FM-1 시뮬레이터">
+    <div class="top">
+      <div class="lp">
+        <div><div class="knob pot" data-k="mst" tabindex="0" role="slider" aria-label="MASTER 볼륨"><i></i></div><div class="kl">MASTER</div></div>
+        <div><div class="knob sm" data-k="sel" tabindex="0" role="slider" aria-label="SELECT 인코더"><i></i></div><div class="kl">SELECT</div></div>
+        <div><div class="knob sm" data-k="pre" tabindex="0" role="slider" aria-label="PRESETS 인코더"><i></i></div><div class="kl">PRESETS</div></div>
+        <div><div class="knob sm" data-k="alg" tabindex="0" role="slider" aria-label="ALGORITHM 인코더"><i></i></div><div class="kl">ALGORITHM</div></div>
+        <div class="octs" id="octs"></div>
+      </div>
+      <div class="bezel"><canvas id="scr" width="720" height="720" tabindex="0" aria-label="트래커 화면"></canvas></div>
+      <div class="knobs">
+        <div><div class="knob" data-k="0" tabindex="0" role="slider" aria-label="노브 1"><i></i></div><div class="kl">1</div></div>
+        <div><div class="knob" data-k="1" tabindex="0" role="slider" aria-label="노브 2"><i></i></div><div class="kl">2</div></div>
+        <div><div class="knob" data-k="2" tabindex="0" role="slider" aria-label="노브 3"><i></i></div><div class="kl">3</div></div>
+        <div><div class="knob" data-k="3" tabindex="0" role="slider" aria-label="노브 4"><i></i></div><div class="kl">4</div></div>
+      </div>
+    </div>
+    <div class="btns" id="btns"></div>
+    <div class="kb" id="kb"></div>
+    <div class="cap"><span>OPL3 · YMF262 · 18CH</span><span id="oct">KEYS F3–G5</span></div>
+    <div class="hint" id="hint"></div>
+  </section>
+  <aside class="side">
+    <h1>FMY262 — FM-1 OPL3 트래커</h1>
+    <p>FM-1 실기 조작부를 흉내 낸 브라우저 프로토타입입니다. 소리는 FM-1 펌웨어와 같은 OPL3 에뮬레이터 DBOPL(44.1kHz)로 내고, 18채널 · 64행 패턴으로 곡을 짭니다.</p>
+    <p class="small">화면을 한 번 누르면 소리가 켜집니다. 조작부는 FM-1 매뉴얼의 구성(왼쪽 MASTER·인코더 3개, 오른쪽 노브 4개, 버튼 12개, 27건반)을 따랐고, 각 조작부의 트래커 기능은 제가 정한 배정입니다. 처음 열리는 곡은 예시로 만든 데모 곡입니다.</p>
+    <div class="row"><button class="ui pri" id="bPlay">▶ 재생 / 정지</button><button class="ui" id="bDemo">데모 곡</button><button class="ui" id="bNew">새 곡</button></div>
+    <p id="stat" style="margin-top:10px">오디오 꺼짐</p>
+    <h2>조작</h2>
+    <table class="stack"><thead><tr><th>기기</th><th>키보드</th><th>기능</th></tr></thead><tbody>
+      <tr><td>건반 27개</td><td><kbd>Z</kbd>–<kbd>M</kbd>, <kbd>Q</kbd>–<kbd>U</kbd></td><td>소리 내기. REC 켜면 커서에 입력하고 한 줄 내려감</td></tr>
+      <tr><td>노브 1</td><td>–</td><td>패턴 선택(00–7F). HOME과 함께면 블록을 줄 방향으로 늘리기</td></tr>
+      <tr><td>노브 2</td><td><kbd>Tab</kbd></td><td>채널 선택. HOME과 함께면 블록을 채널 방향으로 늘리기</td></tr>
+      <tr><td>노브 3</td><td>–</td><td>커서가 있는 FX 칸(FX1 또는 FX2)의 명령어를 차례로 넘기기. HOME과 함께면 묶음(PITCH · VOLUME · COMBO · VIB/TREM · NOTE · SONG · SOUND · MACRO) 단위로 건너뜀. 블록이 있으면 반음 이조(HOME과 함께면 옥타브)</td></tr>
+      <tr><td>노브 4</td><td>–</td><td>커서가 있는 FX 칸의 값(노트·악기 칸이면 FX1). 비어 있으면 C(볼륨) 3F로 시작. HOME과 함께면 16씩</td></tr>
+      <tr><td>MASTER</td><td>–</td><td>출력 볼륨</td></tr>
+      <tr><td>SELECT</td><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>커서 위아래 이동. HOME과 함께면 16줄(한 마디)씩. 악기 화면에서는 페이지 넘기기</td></tr>
+      <tr><td>ALGORITHM</td><td>–</td><td>커서 좌우 이동(노트 → 악기 → FX1 → FX2 → 다음 채널). HOME과 함께면 채널 단위로 이동. 악기 화면에서는 연결 방식</td></tr>
+      <tr><td>PRESETS</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>패턴 화면: 커서 칸의 음색 바꾸기 (빈 칸이면 다음에 입력할 음색), HOME과 함께면 현재 패턴에서 커서 채널의 모든 음을 한꺼번에. 악기 화면: 프리셋 창 열기</td></tr>
+      <tr><td>–</td><td><kbd>←</kbd> <kbd>→</kbd></td><td>칸 안의 노트·악기·볼륨·이펙트 사이 이동 (16진수 직접 입력용)</td></tr>
+      <tr><td>OCT− / OCT+</td><td><kbd>-</kbd> <kbd>=</kbd></td><td>옥타브. HOME과 함께면 복사/붙여넣기(블록이 있으면 블록, 없으면 패턴 전체)</td></tr>
+      <tr><td>HOME 누르고 있기</td><td><kbd>Shift</kbd></td><td>SHIFT. 짧게 누르면 패턴 화면으로, 패턴 화면에서 짧게 누르면 3채널 ↔ 9채널(노트만) 보기</td></tr>
+      <tr><td>EDIT</td><td><kbd>Delete</kbd></td><td>커서 위치 삭제: 노트 칸이면 노트·악기, FX 칸이면 그 이펙트. HOME+EDIT은 칸 전체, 곡 화면에서는 순서 삭제</td></tr>
+      <tr><td>ENV</td><td><kbd>F2</kbd></td><td>악기 편집 화면. 한 번 더 누를 때마다 다음 페이지</td></tr>
+      <tr><td>SEQ</td><td><kbd>F3</kbd></td><td>곡 순서 · BPM · 속도 화면</td></tr>
+      <tr><td>GLO</td><td><kbd>F5</kbd></td><td>GLOBAL: TEMPO · CHIP · VOICES(4OP 쌍, 퍼커션, 매크로 속도). HOME+GLO는 FILE(슬롯 저장·불러오기·이름·삭제·내보내기)</td></tr>
+      <tr><td>FX</td><td>←/→</td><td>짧게: 커서를 FX1 → FX2 → 노트 순으로 옮기기. 길게(또는 <kbd>F6</kbd>): 이펙트 목록 창에서 명령어 고르기</td></tr>
+      <tr><td>ARP</td><td><kbd>F4</kbd></td><td>매크로 편집. 누를 때마다 아르페지오 → 비브라토 → FM 레지스터 매크로(악기별)</td></tr>
+      <tr><td>LFO</td><td>–</td><td>OPL 칩 전체의 비브라토·트레몰로 깊이 전환</td></tr>
+      <tr><td>SEL</td><td>–</td><td>채널 묶음 넘기기 (HOME+SEL은 이전 묶음). 악기 화면에서는 OP1/OP2 전환</td></tr>
+      <tr><td>PLAY/STOP</td><td><kbd>Space</kbd></td><td>곡 재생/정지. HOME+PLAY는 현재 패턴 반복</td></tr>
+      <tr><td>REC</td><td><kbd>`</kbd> <kbd>Esc</kbd></td><td>입력 모드. HOME+REC는 커서 채널 뮤트</td></tr>
+      <tr><td>SAVE</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>짧게 누르면 지금 슬롯에 곡 저장 (슬롯이 없으면 FILE 화면에서 고르기, 악기 화면에서는 음색 저장), 길게 누르면 되돌리기</td></tr>
+      <tr><td>HOME+건반</td><td><kbd>1</kbd></td><td>노트 오프 (===) 입력</td></tr>
+      <tr><td>–</td><td><kbd>Backspace</kbd></td><td>커서가 있는 칸 하나만 지우기</td></tr>
+    </tbody></table>
+    <p class="small" style="margin-top:8px">악기 번호, 볼륨, 이펙트 칸에서는 <kbd>0</kbd>–<kbd>9</kbd> <kbd>A</kbd>–<kbd>F</kbd>로 값을 바로 칠 수 있습니다. <kbd>[</kbd> <kbd>]</kbd>는 입력할 악기를 바꿉니다.</p>
+    <h2>악기 편집 (ENV)</h2>
+    <p class="small">Adlib Tracker의 악기 편집을 4페이지로 나눴습니다. SEL로 고른 오퍼레이터(OP1 모듈레이터 / OP2 캐리어)에 노브가 적용되고, 화면에는 두 오퍼레이터가 나란히 보입니다.</p>
+    <table class="stack"><thead><tr><th>페이지</th><th>노브 1</th><th>노브 2</th><th>노브 3</th><th>노브 4</th></tr></thead><tbody>
+      <tr><td>1 VOICE</td><td>악기 번호</td><td>파형 8종</td><td>AM · VIB · EG · KSR 고르기, HOME과 함께 켜기/끄기</td><td>주파수 배수</td></tr>
+      <tr><td>2 ADSR</td><td>어택</td><td>디케이</td><td>서스테인 레벨</td><td>릴리스</td></tr>
+      <tr><td>3 OUTPUT</td><td>출력 레벨</td><td>피드백</td><td>파인 튠 (±99센트)</td><td>패닝 L·C·R</td></tr>
+      <tr><td>4 SCALE</td><td>키 스케일 레벨</td><td>연결 방식 FM/ADD/4OP 네 가지(ALGORITHM과 같음)</td><td>–</td><td>–</td></tr>
+    </tbody></table>
+    <p class="small" style="margin-top:8px">악기 화면에서 PRESETS를 돌리면 프리셋 창이 열립니다. PRESETS로 고르고(노브 1은 분류 이동), 고를 때마다 미리 듣기가 울립니다. SEL을 누르면 지금 편집 중인 악기 번호에 불러오고, ENV를 누르면 취소합니다. 팩토리 프리셋 34개는 이 프로토타입용으로 직접 만든 음색입니다.</p>
+    <p class="small">악기 화면에서 SAVE를 누르면 이름 입력 창이 열립니다. 건반 하나에 글자 3개씩 배정돼 있어서(F3=ABC, G3=DEF …), 같은 건반을 1초 안에 다시 누르면 다음 글자로 바뀝니다. 컴퓨터 키보드로 바로 쳐도 됩니다. EDIT는 한 글자 지우기, SAVE를 한 번 더 누르면 그 이름으로 악기 이름이 바뀌고 음색이 USER 분류의 새 슬롯(U01–U32)에 저장되며, 프리셋 창 맨 끝에 나타납니다. 유저 프리셋은 곡과 따로 이 브라우저에 보관되므로 다른 곡에서도 불러올 수 있습니다. 지우려면 프리셋 창에서 그 슬롯을 고르고 EDIT를 두 번 누르세요.</p>
+    <p class="small" style="margin-top:8px">ADSR은 오른쪽으로 돌리면 길어지거나 커지도록 맞췄고, 칩 값 대신 대략의 시간(ms)으로 보여줍니다.</p>
+    <h2>매크로 테이블 (ARP)</h2>
+    <p class="small">Adlib Tracker II의 매크로처럼, 음이 울리는 동안 틱마다 한 칸씩 진행하며 음높이를 바꾸는 테이블입니다. 아르페지오 16개, 비브라토 16개가 곡에 저장되고, 악기마다 ENV 4페이지의 노브 3·4로 하나씩 지정합니다. 데모 곡의 LEAD에는 비브라토 02(DELAYED), BELL에는 아르페지오 03(POWER)이 걸려 있습니다.</p>
+    <table class="stack"><thead><tr><th>조작</th><th>아르페지오</th><th>비브라토</th></tr></thead><tbody>
+      <tr><td>노브 1 · 2</td><td>테이블 번호 · 칸</td><td>테이블 번호 · 칸</td></tr>
+      <tr><td>노브 3</td><td>반음 (±48, HOME과 함께 12씩)</td><td>깊이, 1/16반음 단위 (±64)</td></tr>
+      <tr><td>노브 4</td><td>속도 (몇 틱마다 한 칸)</td><td>속도. HOME과 함께면 시작 지연(틱)</td></tr>
+      <tr><td>SELECT · ALGORITHM</td><td>길이 · 반복 시작점</td><td>길이 · 반복 시작점</td></tr>
+      <tr><td>PRESETS</td><td colspan="2">건반으로 미리 들을 악기 고르기 (이 테이블을 씌워서 들려줌)</td></tr>
+      <tr><td>HOME+PRESETS</td><td>모양 불러오기: MAJOR, MINOR, MAJ7, POWER, CHIP RISE 등 11종</td><td>SINE, WIDE, DELAYED, SQUARE, BEND UP 등 8종</td></tr>
+      <tr><td>EDIT</td><td colspan="2">커서 칸을 0으로. HOME+EDIT은 테이블 전체 비우기</td></tr>
+    </tbody></table>
+    <h2>이펙트 칸</h2>
+    <table><tbody>
+      <tr><td><code>0xy</code></td><td>아르페지오: 기준음, +x, +y 반음을 틱마다 반복</td></tr>
+      <tr><td><code>1xx</code> <code>2xx</code></td><td>피치를 틱마다 xx만큼 올림 / 내림 (Adlib Tracker II와 같은 F-number 단계라 A2M에 그대로 저장됨)</td></tr>
+      <tr><td><code>Axy</code></td><td>볼륨 슬라이드: 틱마다 +x, −y</td></tr>
+      <tr><td><code>Fxx</code></td><td>20 미만은 속도(틱/행), 20 이상은 BPM</td></tr>
+    </tbody></table>
+    <h2>곡 파일 (GLO)</h2>
+    <p class="small">곡은 Adlib Tracker II의 <code>.A2M</code> 형식(v11, 18채널 OPL3)으로 슬롯 4개 중 하나에 저장합니다. 악기·매크로 테이블·패턴·순서가 한 파일에 들어가고, AT2보다 정밀한 값(파인 튠, 비브라토 깊이, 음수 아르페지오)은 파일의 예비 영역에 함께 넣어 다시 불러와도 그대로 돌아옵니다. SAVE를 누르면 FILE 화면이 열리고 노브 1 또는 SELECT로 슬롯을 고른 뒤 SAVE를 누릅니다. 빈 슬롯이면 곡 이름 창이 열리고(악기 이름과 같은 3글자 입력), 지금 곡이 저장된 슬롯이고 바뀐 것이 없으면 바로 저장됩니다. 곡이 바뀌었거나 다른 곡이 든 슬롯이면 덮어쓰기 경고가 뜨고, SAVE를 한 번 더 눌러야 저장됩니다. 이름은 빈 슬롯에 처음 저장할 때만 정하고, 나중에 바꾸려면 EDIT(이름 바꾸기)를 씁니다. 삭제는 OCT−를 두 번, SEL은 불러오기, FX는 내보내기, ENV는 USB 가져오기이고 그 밖의 버튼은 모두 취소입니다.</p>
+    <p class="small">FILE 화면에서 FX는 지금 곡을 내보내기(zip 안의 .A2M), ENV는 USB 가져오기 대기 상태입니다. 대기 중에는 아래 업데이트 페이지에서 보낸 파일만 받습니다. AT2 v9–v14 곡과 Reality AdLib Tracker(.RAD v1.0·v2.1) 곡을 읽을 수 있고(RAD의 리프는 패턴에 펼쳐 넣음), 그보다 오래된 형식은 AT2에서 한 번 다시 저장해야 합니다.</p>
+    <div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;background:var(--card)">
+      <strong style="font-size:15px">업데이트 페이지</strong> <span class="small">(USB 연결 시뮬레이션)</span>
+      <p class="small" id="usbState" style="margin:6px 0 10px">기기 상태: 대기 아님</p>
+      <label class="ui" style="display:inline-flex;align-items:center;cursor:pointer">.A2M / .RAD / .zip 보내기<input type="file" id="usbFile" accept=".a2m,.A2M,.rad,.RAD,.zip" style="position:absolute;opacity:0;width:1px;height:1px"></label>
+      <p class="small" id="usbMsg" style="margin:8px 0 0"></p>
+    </div>
+    <div class="row"><button class="ui" id="bCopy">JSON 복사</button></div>
+    <details><summary>JSON 붙여넣어 불러오기</summary><textarea id="ta" spellcheck="false" aria-label="곡 JSON"></textarea><div class="row" style="margin-top:8px"><button class="ui" id="bLoad">불러오기</button></div></details>
+  </aside>
+</div>
+<script>
+/*OPL*/
+/*ENGINE*/
+/*DEMO*/
+/*PRESETS*/
+/*EXPORT*/
+/*RAD*/
+/*FONT*/
+{
+const $ = s => document.querySelector(s);
+const cv = $('#scr'), g = cv.getContext('2d');
+const C0 = { bg: '#0000AA', beat: '#0C0CB6', cur: '#0000FF', play: '#AA0000', bar: '#000080', grey: '#AAAAAA', white: '#FFFFFF', cyan: '#55FFFF', yellow: '#FFFF55', green: '#55FF55', red: '#FF5555', mag: '#FF55FF', dim: '#5555FF', panel: '#000060', line: '#000070', track: '#00007A', chsel: '#0000C8' };
+const THEMES = {
+  GREY: { bg: '#2A2A2A', beat: '#333333', cur: '#505050', bar: '#1E1E1E', dim: '#7A7A7A', panel: '#161616', line: '#262626', track: '#222222', chsel: '#5A5A5A', play: '#7A2A2A' },
+  GREEN: { bg: '#002A12', beat: '#003618', cur: '#00602A', bar: '#001E0C', dim: '#2FA060', panel: '#00160A', line: '#002010', track: '#00200E', chsel: '#00803A', play: '#6A2A00' },
+  AMBER: { bg: '#2A1600', beat: '#361D00', cur: '#6A3A00', bar: '#1E1000', dim: '#B07020', panel: '#160C00', line: '#201200', track: '#201000', chsel: '#8A4C00', play: '#7A1A00' },
+  ICE: { bg: '#0A2A3A', beat: '#0E3448', cur: '#1E5A78', bar: '#082030', dim: '#4A9AC0', panel: '#061822', line: '#0A2230', track: '#081E2A', chsel: '#2A7298', play: '#6A2040' },
+  VIOLET: { bg: '#26104A', beat: '#2E1458', cur: '#4A2490', bar: '#1C0A38', dim: '#8A5AD0', panel: '#140828', line: '#1E0C38', track: '#1A0A30', chsel: '#5A30B0', play: '#7A1A40' },
+  ROSE: { bg: '#3A1022', beat: '#46142A', cur: '#7A2448', bar: '#2C0C1A', dim: '#D06090', panel: '#200810', line: '#2C0C1A', track: '#280A16', chsel: '#9A3060', play: '#8A2A10' },
+  PAPER: { bg: '#E8E4D8', beat: '#DCD7C8', cur: '#C8C0A8', bar: '#D0CAB8', dim: '#8A8470', panel: '#C8C2B0', line: '#BDB6A2', track: '#C4BEAA', chsel: '#B8AE90', play: '#E0A0A0', white: '#1A1A1A', grey: '#4A4A4A', cyan: '#005A7A', yellow: '#7A5A00', green: '#1A6A2A', red: '#A02020', mag: '#8A2A7A' },
+  'HI-CON': { bg: '#000000', beat: '#101010', cur: '#303030', bar: '#000000', dim: '#A0A0A0', panel: '#000000', line: '#303030', track: '#181818', chsel: '#404040', play: '#800000' },
+  NIGHT: { bg: '#100000', beat: '#180404', cur: '#301010', bar: '#0C0000', dim: '#803030', panel: '#080000', line: '#140404', track: '#120202', chsel: '#401010', play: '#500000', white: '#FF7070', grey: '#B04848', cyan: '#FF5050', yellow: '#FF8040', green: '#E06040', red: '#FF3030', mag: '#FF6080' },
+  MONO: { bg: '#000000', beat: '#0A0A0A', cur: '#2A2A2A', bar: '#000000', dim: '#707070', panel: '#000000', line: '#1A1A1A', track: '#141414', chsel: '#3A3A3A', play: '#505050', cyan: '#FFFFFF', yellow: '#FFFFFF', green: '#D0D0D0', red: '#FFFFFF', mag: '#D0D0D0' } };
+const C = { bg: '#0000AA', beat: '#0C0CB6', cur: '#0000FF', play: '#AA0000', bar: '#000080', grey: '#AAAAAA', white: '#FFFFFF', cyan: '#55FFFF', yellow: '#FFFF55', green: '#55FF55', red: '#FF5555', mag: '#FF55FF', dim: '#5555FF' };
+const NN = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
+const PK = ['mult', 'tl', 'ar', 'dr', 'sl', 'rr', 'ws', 'ksl', 'egt', 'ksr', 'vib', 'am'];
+const PN = ['MULT', 'TL', 'AR', 'DR', 'SL', 'RR', 'WAVE', 'KSL', 'EG', 'KSR', 'VIB', 'AM', 'FB', 'CON', 'PAN'];
+const PMAX = [15, 63, 15, 15, 15, 15, 7, 3, 1, 1, 1, 1, 7, 1, 2];
+const KEY = 'fm1-opl3-song';
+/* device settings (hold HOME). Rows and defaults follow Felucca's MENU where the same thing exists */
+const SETK = 'fm1-opl3-settings', RNG = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const SETTABS = ['DISPLAY', 'CONTROL', 'AUDIO', 'MIDI', 'SYSTEM'];
+const SETDEF = [
+  [0, 'color', 'COLOR', ['BLUE', 'GREY', 'GREEN', 'AMBER', 'ICE', 'VIOLET', 'ROSE', 'PAPER', 'HI-CON', 'NIGHT', 'MONO'], 'BLUE'],
+  [0, 'leds', 'LEDS', ['OFF', 'DIM LO', 'DIM HI', 'INV', 'INV LO', 'INV HI'], 'DIM HI'],
+  [0, 'sleep', 'SCREEN OFF', ['NEVER', '5 MIN', '15 MIN', '30 MIN', '60 MIN'], 'NEVER'],
+  [0, 'rownum', 'ROW NUMBERS', ['HEX', 'DEC'], 'HEX'],
+  [0, 'homev', 'HOME VIEW', ['3CH', '9CH'], '3CH'],
+  [1, 'hold', 'HOLD', ['300 MS', '450 MS', '700 MS'], '450 MS'],
+  [1, 'accel', 'KNOB ACCEL', ['OFF', 'ON'], 'OFF'],
+  [1, 'step', 'EDIT STEP', RNG(0, 16).map(String), '1'],
+  [1, 'wrap', 'CURSOR WRAP', ['ON', 'OFF'], 'ON'],
+  [1, 'prev', 'STEP PREVIEW', ['OFF', 'ON'], 'OFF'],
+  [2, 'eq', 'SPEAKER EQ', ['FLAT', 'LOWCUT', 'BASS+'], 'FLAT'],
+  [2, 'click', 'CLICK', ['OFF', 'REC', 'ON'], 'OFF'],
+  [2, 'clvl', 'CLICK LEVEL', ['LOW', 'MID', 'HIGH'], 'MID'],
+  [2, 'count', 'COUNT-IN', ['OFF', '1 BAR', '2 BARS'], 'OFF'],
+  [2, 'tune', 'TUNE', RNG(-50, 50).map(v => (v > 0 ? '+' : '') + v + 'C'), '0C'],
+  [3, 'midiin', 'MIDI IN', ['OFF', 'OMNI'].concat(RNG(1, 16).map(v => 'CH' + v)), 'OMNI'],
+  [3, 'midirec', 'MIDI TO REC', ['ON', 'OFF'], 'ON'],
+  [4, 'restore', 'RESTORE LAST', ['ON', 'OFF'], 'ON'],
+  [4, 'help', 'HELP', ['OFF', 'ON'], 'OFF'],
+  [4, 'cpu', 'CPU LOAD', ['—'], '—'],
+  [4, 'core', 'CORE', ['DUAL', 'SINGLE'], 'DUAL'],
+  [4, 'reset', 'RESET SETTINGS', ['OCT+'], 'OCT+'],
+  [4, 'info', 'INFO', ['—'], '—']];
+const S = {}; SETDEF.forEach(r => S[r[1]] = r[4]);
+try { Object.assign(S, JSON.parse(localStorage.getItem(SETK)) || {}); } catch (e) {}
+SETDEF.forEach(r => { if (!r[3].includes(S[r[1]])) S[r[1]] = r[4]; });
+const saveSettings = () => { try { localStorage.setItem(SETK, JSON.stringify(S)); } catch (e) {} };
+let song, post = () => {}, ctx = null, mode = '', gainNode = null, eqNode = null, master = 0.8;
+const st = { about: 1, ap: 0, aboutT: 0, aboutUp: null, gpg: 0, menu: null, counting: 0, dirty: false, owK: -1, owT: 0, fsave: false, ret: 'pat', imp: '', impData: null, nslot: 0, fsel: 0, slot: -1, nt: 'ins', nw: false, nm: '', nc: 0, tk: -1, tt: 0, ti: 0, mi: 1, mk: 'arp', mt: 1, ms: 0, shp: -1, pw: false, pi: 0, ipg: 0, op: 1, flag: 0, step: 1, arp: 0x37, page: 'pat', ord: 0, row: 0, ch: 0, field: 0, oct: 4, inst: 1, rec: false, compact: false, scope: 0, ip: 0, isel: 1, playing: false, prow: -1, pord: 0, loop: false, shift: false, used: false, msg: '', msgT: 0 };
+const mute = Array(20).fill(false), meter = Array(20).fill(0);
+const NCHN = () => TRACKS().length;
+/* tracks: melodic ones (AT2 numbering) plus, in percussion mode, tracks 16–20 = BD SD TT CY HH */
+const DRUMS = [15, 16, 17, 18, 19], DRN = ['BD', 'SD', 'TT', 'CY', 'HH'], HI4 = [0, 2, 4, 9, 11, 13];
+const MEL = () => { const o2 = song.opl === 2, pc = song.perc; return Array.from({ length: o2 ? (pc ? 6 : 9) : (pc ? 15 : 18) }, (_, i) => i); };
+const TRACKS = () => song.perc ? MEL().concat(DRUMS) : MEL();
+function groups() { const gw = GW(), M = MEL(), G = []; for (let i = 0; i < M.length; i += gw) G.push(M.slice(i, i + gw)); if (song.perc) G.push(DRUMS); return G; }
+const curGroup = () => groups().find(g => g.includes(st.ch)) || groups()[0];
+const isDrum = ch => !!song.perc && ch >= 15;
+const pairOf = ch => { const p = HI4.indexOf(ch); return p >= 0 && song.opl !== 2 && (song.four >> p & 1) ? p : -1; };
+const isLo4 = ch => ch > 0 && pairOf(ch - 1) >= 0;
+function fixCh() { const T = TRACKS(); if (!T.includes(st.ch)) st.ch = T[0]; }
+function stepCh(d) { const T = TRACKS(), i = Math.max(0, T.indexOf(st.ch)); st.ch = T[(i + d + T.length) % T.length]; }
+const undo = []; let lastSnap = 0;
+const hex = (v, n) => v.toString(16).toUpperCase().padStart(n, '0');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const noteName = n => n === -2 ? '===' : n < 0 ? '---' : NN[n % 12] + Math.floor(n / 12 - 1);
+function flash(m) { st.msg = m; st.msgT = performance.now(); }
+function pat(p) { if (!song.patterns[p]) song.patterns[p] = emptyPattern(song.rows); return song.patterns[p]; }
+function sendSong() { post({ t: 'song', song }); }
+function snap() { const t = performance.now(); if (t - lastSnap > 400) { undo.push(JSON.stringify(song)); if (undo.length > 50) undo.shift(); } lastSnap = t; }
+function changed() { st.dirty = true; sendSong(); }
+function setSong(s, msg) { song = normSong(s); st.ord = 0; st.row = 0; st.ch = 0; st.field = 0; st.isel = 1; st.inst = 1; undo.length = 0; if (st.playing) stop(); sendSong(); flash(msg || 'LOADED'); }
+function valid(s) { return s && Array.isArray(s.order) && Array.isArray(s.patterns) && Array.isArray(s.inst) && s.rows > 0 && s.order.length; }
+if (S.restore === 'ON') try { const s = JSON.parse(localStorage.getItem(KEY)); if (valid(s)) song = normSong(s); } catch (e) {}
+if (!song) song = demoSong();
+try { const k = +localStorage.getItem(KEY + '-slot'); if (k >= 0 && k < 4 && localStorage.getItem(KEY + '-slot') !== null) st.slot = k; } catch (e) {}
+const curPat = () => song.order[orderPos(song.order, st.ord)];
+const F = () => st.compact ? 1 : 4, GW = () => st.compact || st.scope === 2 ? 9 : 3;
+
+/* audio */
+/* the render's load (SYSTEM · CPU LOAD): each block timed where it runs (the worklet, or the page's ScriptProcessor),
+ * the share of its real time used, posted every half second with the highest of the last four halves. The worklet's
+ * clock may be Date.now's milliseconds: averaged over a half second it still says enough */
+function __now() { return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now(); }
+function __load(p, ms, n) { p.lb = (p.lb || 0) + ms; p.ln = (p.ln || 0) + n;
+  if (p.ln >= p.e.sr / 2) { const v = Math.round(p.lb * 100 / (p.ln * 1000 / p.e.sr)); p.lh = (p.lh || []).concat(v).slice(-4);
+    p.e.send({ t: 'cpu', v, pk: Math.max(...p.lh) }); p.lb = 0; p.ln = 0; } }
+const LOADSRC = __now.toString() + '\n' + __load.toString();
+let cpuV = -1, cpuPk = -1;
+async function startAudio() {
+  if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+  try { ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', sampleRate: 44100 }); }   /* (the FM-1's rate: DBOPL's own samples) */
+  catch (e) { ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' }); }
+  let node;
+  try {
+    const src = makeOPL.toString() + '\n' + Engine.toString() + '\n' + LOADSRC + '\nclass P extends AudioWorkletProcessor{constructor(){super();this.e=new Engine(sampleRate,makeOPL,m=>this.port.postMessage(m));this.port.onmessage=ev=>this.e.handle(ev.data);}process(i,o){const L=o[0][0],R=o[0][1]||o[0][0],t0=__now();this.e.render(L,R,L.length);__load(this,__now()-t0,L.length);return true;}}\nregisterProcessor("opl3",P);';
+    const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+    await ctx.audioWorklet.addModule(url);
+    node = new AudioWorkletNode(ctx, 'opl3', { numberOfInputs: 0, outputChannelCount: [2] });
+    node.port.onmessage = ev => onEngine(ev.data); post = m => node.port.postMessage(m); mode = 'AudioWorklet';
+  } catch (err) {
+    console.warn('AudioWorklet unavailable, using ScriptProcessor:', err && err.message);
+    const eng = new Engine(ctx.sampleRate, makeOPL, onEngine), lp = { e: eng };
+    node = ctx.createScriptProcessor(1024, 0, 2);
+    node.onaudioprocess = ev => { const t0 = __now(); eng.render(ev.outputBuffer.getChannelData(0), ev.outputBuffer.getChannelData(1), ev.outputBuffer.length); __load(lp, __now() - t0, ev.outputBuffer.length); };
+    post = m => eng.handle(m); mode = 'ScriptProcessor';
+  }
+  gainNode = ctx.createGain(); gainNode.gain.value = master * master; eqNode = ctx.createBiquadFilter(); node.connect(eqNode); eqNode.connect(gainNode); gainNode.connect(ctx.destination); sendSong(); post({ t: 'mute', mute }); applySettings();
+  if (ctx.state !== 'running') ctx.resume();
+  $('#stat').textContent = `오디오 켜짐 · ${mode} · ${ctx.sampleRate} Hz · DBOPL${ctx.sampleRate === 44100 ? ' (FM-1과 같은 샘플)' : ' (44.1kHz에서 변환)'}`;
+}
+function onEngine(m) {
+  if (m.t === 'cpu') { if (location.hash !== '#uitest') { cpuV = m.v; cpuPk = m.pk; } return; }   /* (t44: the C host has none) */
+  if (m.t === 'scope') { scopeD = m; return; }
+  if (m.t === 'pos') { st.prow = m.row; st.pord = m.ord; m.trig.forEach(c => meter[c] = 1);
+    if ((S.click === 'ON' || (S.click === 'REC' && st.rec)) && m.row % 4 === 0) blip(m.row % 16 === 0);
+    if (st.playing && st.page !== 'ins') { st.ord = m.ord; st.row = m.row; } }
+}
+function blip(acc) { if (!ctx) return; const o = ctx.createOscillator(), g = ctx.createGain(), t0 = ctx.currentTime, lv = { LOW: .08, MID: .18, HIGH: .35 }[S.clvl];
+  o.frequency.value = acc ? 1760 : 1320; g.gain.setValueAtTime(lv, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.06); }
+const rowMs = () => song.speed * 2500 / song.bpm;
+let countT = [];
+async function play(loop) { await startAudio();
+  const bars = { OFF: 0, '1 BAR': 1, '2 BARS': 2 }[S.count];
+  if (st.rec && bars) { st.counting = bars * 4; countT.forEach(clearTimeout); countT = [];
+    for (let k = 0; k < bars * 4; k++) countT.push(setTimeout(() => { blip(k % 4 === 0); st.counting = bars * 4 - k; flash('COUNT ' + (bars * 4 - k)); }, k * rowMs() * 4));
+    countT.push(setTimeout(() => { st.counting = 0; st.playing = true; st.loop = loop; post({ t: 'play', ord: st.ord, row: 0, loop }); }, bars * 4 * rowMs() * 4)); return; }
+  st.playing = true; st.loop = loop; post({ t: 'play', ord: st.ord, row: 0, loop }); }
+function stop() { countT.forEach(clearTimeout); countT = []; st.counting = 0; st.playing = false; st.prow = -1; post({ t: 'stop' }); }
+function toggle(loop) { st.playing || st.counting ? stop() : play(loop); }
+
+/* editing */
+function cell() { return pat(curPat())[st.row][st.ch]; }
+function move(dr) { st.row = S.wrap === 'ON' ? ((st.row + dr) % song.rows + song.rows) % song.rows : clamp(st.row + dr, 0, song.rows - 1); }
+function preview() { if (S.prev !== 'ON' || st.playing || !ctx) return; const c = cell(); if (c[0] < 0) return; post({ t: 'on', c: st.ch, note: c[0], inst: c[1] || st.inst }); const ch = st.ch; setTimeout(() => post({ t: 'off', c: ch }), 180); }
+function moveField(d) { const f = F(), T = TRACKS(); let i = clamp(Math.max(0, T.indexOf(st.ch)) * f + st.field + d, 0, T.length * f - 1); st.ch = T[Math.floor(i / f)]; st.field = i % f; }
+function clearField() { snap(); const c = cell();
+  if (st.field === 0) { c[0] = -1; c[1] = 0; } else if (st.field === 1) c[1] = 0; else { const i = fxi(st.field); c[i] = -1; c[i + 1] = 0; }
+  changed(); }
+const FLAGS = [['am', 'AM', 'TREMOLO: VOLUME WOBBLE FROM CHIP LFO'], ['vib', 'VIB', 'VIBRATO: PITCH WOBBLE FROM CHIP LFO'], ['egt', 'EG', 'ON: HOLDS AT SUSTAIN WHILE KEY IS DOWN'], ['ksr', 'KSR', 'ON: HIGHER NOTES GET FASTER ENVELOPES']];
+const WNAME = ['SINE', 'HALF SINE', 'ABS SINE', 'PULSE SINE', 'SINE x2', 'ABS SINE x2', 'SQUARE', 'DERIVED SQR'];
+const MULT = ['0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '10', '12', '12', '15', '15'];
+const KSLO = [0, 2, 1, 3], KSLN = ['0', '1.5', '3.0', '6.0'];
+const ATK = [Infinity, 2826, 1413, 706, 353, 176, 88, 44, 22, 11, 5.5, 2.8, 1.4, 0.7, 0.4, 0], DEC = [Infinity, 39280, 19640, 9820, 4910, 2455, 1227, 614, 307, 153, 77, 38, 19, 9.6, 4.8, 2.4];
+const ms = v => v === Infinity ? '∞' : v === 0 ? '0ms' : v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 's' : (v < 10 ? v.toFixed(1) : Math.round(v)) + 'ms';
+const PG = ['VOICE', 'ADSR', 'OUTPUT', 'SCALE'];
+// Adlib Tracker II effects (number = AT2 ef_*; Z/&/# entries carry the sub-command in the high nibble)
+const FXD = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ&%!@=#$~^`><';
+const FXCATS = ['PITCH', 'VOLUME', 'COMBO', 'VIB/TREM', 'NOTE', 'SONG', 'SOUND', 'MACRO', 'GLOBAL'];
+const FXR = [ // [f, hi, lo, name, short, category]  hi/lo undefined = free value
+  [0, , , 'ARPEGGIO', 'ARP', 0], [1, , , 'PITCH UP', 'UP', 0], [2, , , 'PITCH DOWN', 'DOWN', 0], [7, , , 'FINE PITCH UP', 'FUP', 0], [8, , , 'FINE PITCH DOWN', 'FDN', 0],
+  [3, , , 'TONE PORTAMENTO', 'PORT', 0], [42, , , 'X-FINE ARPEGGIO', 'XARP', 0], [36, 14, , 'X-FINE PITCH UP', 'XUP', 0], [36, 15, , 'X-FINE PITCH DOWN', 'XDN', 0],
+  [36, 4, , 'FINE TUNE UP', 'TUN+', 0], [36, 5, , 'FINE TUNE DOWN', 'TUN-', 0],
+  [12, , , 'SET VOLUME', 'VOL', 1], [10, , , 'VOLUME SLIDE', 'VSLD', 1], [20, , , 'FINE VOL SLIDE', 'FVSL', 1], [9, , , 'MODULATOR VOLUME', 'MVOL', 1],
+  [18, , , 'CARRIER VOLUME', 'CVOL', 1], [40, , , 'FORCE VOLUME', 'FVOL', 1], [36, 12, , 'X-FINE VOL UP', 'XVUP', 1], [36, 13, , 'X-FINE VOL DOWN', 'XVDN', 1],
+  [35, 15, 1, 'RESET VOLUME', 'RVOL', 1], [35, 15, 2, 'LOCK VOLUME', 'VLCK', 1], [35, 15, 3, 'UNLOCK VOLUME', 'VULK', 1], [35, 15, 4, 'LOCK PEAK', 'PLCK', 1], [35, 15, 5, 'UNLOCK PEAK', 'PULK', 1],
+  [35, 15, 6, 'SLIDES: MODULATOR', 'VS-M', 1], [35, 15, 7, 'SLIDES: CARRIER', 'VS-C', 1], [35, 15, 8, 'SLIDES: DEFAULT', 'VS-D', 1],
+  [5, , , 'PORTA + VOL SLIDE', 'PTVS', 2], [6, , , 'VIBRATO + VOL SLIDE', 'VBVS', 2], [16, , , 'PORTA + FINE VSLIDE', 'PTFV', 2], [17, , , 'VIB + FINE VSLIDE', 'VBFV', 2],
+  [24, , , 'ARP + VOL SLIDE', 'ARVS', 2], [25, , , 'ARP + FINE VSLIDE', 'ARFV', 2], [27, , , 'UP + VOL SLIDE', 'UPVS', 2], [28, , , 'DOWN + VOL SLIDE', 'DNVS', 2],
+  [29, , , 'FINE UP + VSLIDE', 'FUVS', 2], [30, , , 'FINE DOWN + VSLIDE', 'FDVS', 2], [31, , , 'UP + FINE VSLIDE', 'UPFV', 2], [32, , , 'DOWN + FINE VSLIDE', 'DNFV', 2],
+  [33, , , 'FINE UP + FINE VSL', 'FUFV', 2], [34, , , 'FINE DN + FINE VSL', 'FDFV', 2],
+  [4, , , 'VIBRATO', 'VIB', 3], [43, , , 'X-FINE VIBRATO', 'XVIB', 3], [22, , , 'TREMOLO', 'TREM', 3], [44, , , 'X-FINE TREMOLO', 'XTRM', 3], [23, , , 'TREMOR', 'TRMR', 3],
+  [35, 0, , 'CHIP TREMOLO DEPTH', 'AMDP', 3], [35, 1, , 'CHIP VIBRATO DEPTH', 'VBDP', 3], [35, 15, 11, 'VIBRATO OFF', 'VOFF', 3], [35, 15, 12, 'TREMOLO OFF', 'TOFF', 3],
+  [35, 15, 13, 'VIBRATO ONCE A ROW', 'VROW', 3], [35, 15, 14, 'TREMOLO ONCE A ROW', 'TROW', 3],
+  [21, , , 'RETRIGGER', 'RTRG', 4], [26, , , 'MULTI RETRIGGER', 'MRTG', 4], [36, 2, , 'NOTE DELAY', 'NDLY', 4], [36, 3, , 'NOTE CUT', 'NCUT', 4],
+  [35, 14, 4, 'RESTART ENVELOPE', 'RENV', 4], [35, 15, 0, 'RELEASE SOUND', 'RLS', 4],
+  [15, , , 'SPEED / BPM', 'SPD', 5], [11, , , 'POSITION JUMP', 'JUMP', 5], [13, , , 'PATTERN BREAK', 'BRK', 5], [35, 12, , 'PATTERN LOOP', 'LOOP', 5],
+  [35, 13, , 'PATTERN LOOP (RECUR)', 'LOOP', 5], [36, 0, , 'ROW DELAY: TICKS', 'TDLY', 5], [36, 1, , 'ROW DELAY: ROWS', 'RDLY', 5],
+  [19, , , 'WAVEFORM CAR/MOD', 'WAVE', 6], [35, 2, , 'MOD ATTACK', 'MATK', 6], [35, 3, , 'MOD DECAY', 'MDEC', 6], [35, 4, , 'MOD SUSTAIN', 'MSUS', 6], [35, 5, , 'MOD RELEASE', 'MREL', 6],
+  [35, 6, , 'CAR ATTACK', 'CATK', 6], [35, 7, , 'CAR DECAY', 'CDEC', 6], [35, 8, , 'CAR SUSTAIN', 'CSUS', 6], [35, 9, , 'CAR RELEASE', 'CREL', 6],
+  [35, 10, , 'FEEDBACK', 'FB', 6], [35, 11, , 'PANNING 0C 1L 2R', 'PAN', 6], [35, 15, 9, 'LOCK PANNING', 'PNLK', 6], [35, 15, 10, 'UNLOCK PANNING', 'PNUL', 6],
+  [41, 0, , 'CONNECTION FM/ADD', 'CONN', 6], [41, 1, , 'MOD MULTIPLIER', 'MMUL', 6], [41, 2, , 'MOD KEY SCALE', 'MKSL', 6], [41, 3, , 'MOD AM', 'M-AM', 6], [41, 4, , 'MOD VIB', 'MVIB', 6],
+  [41, 5, , 'MOD KSR', 'MKSR', 6], [41, 6, , 'MOD EG HOLD', 'M-EG', 6], [41, 7, , 'CAR MULTIPLIER', 'CMUL', 6], [41, 8, , 'CAR KEY SCALE', 'CKSL', 6], [41, 9, , 'CAR AM', 'C-AM', 6],
+  [41, 10, , 'CAR VIB', 'CVIB', 6], [41, 11, , 'CAR KSR', 'CKSR', 6], [41, 12, , 'CAR EG HOLD', 'C-EG', 6],
+  [38, , , 'SWAP ARP TABLE', 'ARPT', 7], [39, , , 'SWAP VIB TABLE', 'VIBT', 7], [35, 15, 15, 'SWAP: NO RESTART', 'NORS', 7],
+  [35, 14, 0, 'MACRO KEY-OFF LOOP OFF', 'MKL0', 7], [35, 14, 1, 'MACRO KEY-OFF LOOP ON', 'MKL1', 7], [35, 14, 2, 'PORTA KEY OFF', 'PFK0', 7], [35, 14, 3, 'PORTA KEY ON', 'PFK1', 7],
+  [37, , , 'SET GLOBAL VOLUME', 'GVOL', 8], [36, 6, , 'GLOBAL VOL UP', 'GVUP', 8], [36, 7, , 'GLOBAL VOL DOWN', 'GVDN', 8], [36, 8, , 'FINE GLOBAL VOL UP', 'FGVU', 8],
+  [36, 9, , 'FINE GLOBAL VOL DN', 'FGVD', 8], [36, 10, , 'X-FINE GLOBAL VOL UP', 'XGVU', 8], [36, 11, , 'X-FINE GLOBAL VOL DN', 'XGVD', 8],
+  [45, , , 'FX SHAPE (4XY MXY)', 'SHAP', 8], [46, , , 'GLOBAL PITCH UP', 'GUP', 8], [47, , , 'GLOBAL PITCH DOWN', 'GDN', 8]];
+const FXL = [{ f: -1, name: 'NO EFFECT', short: '', cat: -1 }].concat(FXR.map(([f, hi, lo, name, short, cat]) => ({ f, hi, lo, name, short, cat })));
+const fxEntry = (f, v) => { if (f < 0) return 0; let k = FXL.findIndex(x => x.f === f && x.hi !== undefined && x.lo !== undefined && v === (x.hi << 4 | x.lo));
+  if (k < 0) k = FXL.findIndex(x => x.f === f && x.hi !== undefined && x.lo === undefined && v >> 4 === x.hi); if (k < 0) k = FXL.findIndex(x => x.f === f && x.hi === undefined); return k; };
+const fxMax = f => f === 12 || f === 9 || f === 18 || f === 40 || f === 37 ? 63 : 255, fxShort = (f, v) => { const k = fxEntry(f, v || 0); return k < 0 ? '?' : FXL[k].short; };
+const fxCode = x => x.f < 0 ? '---' : FXD[x.f] + (x.hi === undefined ? 'XX' : hex(x.hi, 1) + (x.lo === undefined ? 'Y' : hex(x.lo, 1)));
+const fxApply = (c, i, x) => { c[i] = x.f; if (x.f < 0) c[i + 1] = 0; else if (x.hi !== undefined) c[i + 1] = x.hi << 4 | (x.lo !== undefined ? x.lo : c[i + 1] & 15);
+  else if (x.f === 12 && !c[i + 1]) c[i + 1] = 63; else c[i + 1] = Math.min(c[i + 1], fxMax(x.f)); };
+const fxStr = (f, v) => f < 0 ? '---' : FXD[f] + hex(v, 2);
+// FX focus: fields 2 (FX1) and 3 (FX2) map to cell indices 2/3 and 4/5
+const fxi = fld => fld === 3 ? 4 : 2;
+const mtab = () => song[st.mk][st.mt - 1];
+/* FM register macro columns (AT2 order; 28 = step flags kept in the feedback byte) */
+const REGC = [].concat(...['M', 'C'].map(o => [['ATK', 15], ['DEC', 15], ['SUS', 15], ['REL', 15], ['WAVE', 7], ['LEVEL', 63], ['KSL', 3], ['MULT', 15], ['AM', 1], ['VIB', 1], ['KSR', 1], ['EG', 1]].map(([n, m]) => [o + ' ' + n, m])),
+  [['CONNECT', 1], ['FEEDBACK', 7], ['F.SLIDE', 255], ['PAN', 2], ['TRIG', 3]]);
+const TRIGN = ['—', 'RETRIG', 'ENV RST', 'ZERO FQ'], PANN = ['C', 'L', 'R'];
+function regGet(s, k) { const D = s.d, j = k >= 12 && k < 24 ? 1 : 0, q = k % 12;
+  if (k < 24) { const a = D[j], kv = D[2 + j], ad = D[4 + j], sr = D[6 + j]; return [ad >> 4, ad & 15, sr >> 4, sr & 15, D[8 + j] & 7, 63 - (kv & 63), kv >> 6, a & 15, a >> 7, a >> 6 & 1, a >> 4 & 1, a >> 5 & 1][q]; }
+  return k === 24 ? D[10] & 1 : k === 25 ? D[10] >> 1 & 7 : k === 26 ? s.fs : k === 27 ? s.pan : D[10] & 0x80 ? 1 : D[10] & 0x40 ? 2 : D[10] & 0x20 ? 3 : 0; }
+function regSet(s, k, v) { const D = s.d, j = k >= 12 && k < 24 ? 1 : 0, q = k % 12, set = (i, sh, m) => D[i] = D[i] & ~(m << sh) | (v & m) << sh;
+  if (k < 24) [() => set(4 + j, 4, 15), () => set(4 + j, 0, 15), () => set(6 + j, 4, 15), () => set(6 + j, 0, 15), () => set(8 + j, 0, 7), () => { D[2 + j] = D[2 + j] & 0xC0 | (63 - v); }, () => set(2 + j, 6, 3), () => set(j, 0, 15), () => set(j, 7, 1), () => set(j, 6, 1), () => set(j, 4, 1), () => set(j, 5, 1)][q]();
+  else if (k === 24) set(10, 0, 1); else if (k === 25) set(10, 1, 7); else if (k === 26) s.fs = v; else if (k === 27) s.pan = v; else D[10] = D[10] & 0x1F | [0, 0x80, 0x40, 0x20][v]; }
+const regIns = () => song.inst[st.mi - 1];
+function regMac(make) { const ins = regIns(); if (!ins.fmm && make) ins.fmm = blankFmm(); return ins.fmm; }
+function regStep(M, i) { while (M.steps.length <= i) M.steps.push({ d: insBytes(regIns()), fs: 0, pan: 0, dur: 1 }); if (M.len <= i) M.len = i + 1; return M.steps[i]; }
+function regKnob(i, d, sh) { const M = regMac(true);
+  if (i === 0) { st.rs = clamp((st.rs || 0) + d, 0, 254); return; }
+  if (i === 1) { if (sh) { if ((st.rc || 0) < 28) { snap(); M.dis[st.rc || 0] = !M.dis[st.rc || 0]; changed(); flash(REGC[st.rc || 0][0] + (M.dis[st.rc || 0] ? ' OFF' : ' ON')); } return; } st.rc = clamp((st.rc || 0) + d, 0, 28); return; }
+  if (i === 'pre') { st.mi = clamp(st.mi + d, 1, song.inst.length); st.rs = 0; flash('INS ' + hex(st.mi, 2) + ' ' + regIns().name); return; }
+  if (i === 'mst') return knob('mst', d);
+  snap();
+  if (i === 2) { const s = regStep(M, st.rs || 0), k = st.rc || 0, mx = REGC[k][1], v = regGet(s, k) + d * (sh ? (k === 26 ? 16 : 4) : 1); regSet(s, k, k === 26 ? clamp(v, -255, 255) : clamp(v, 0, mx)); }
+  else if (i === 3) { if (sh) M.ko = clamp(M.ko + d, 0, M.len); else { const s = regStep(M, st.rs || 0); s.dur = clamp(s.dur + d, 0, 255); } }
+  else if (i === 'sel') { M.len = clamp(M.len + d, 0, 255); if (M.len) regStep(M, M.len - 1); if (M.lb > M.len) M.lb = 0; if (M.ko > M.len) M.ko = 0; st.rs = Math.min(st.rs || 0, Math.max(0, M.len - 1)); }
+  else if (i === 'alg') { if (sh) M.ll = clamp(M.ll + d, 0, Math.max(0, M.len - M.lb + 1)); else { M.lb = clamp(M.lb + d, 0, M.len); if (!M.ll && M.lb) M.ll = 1; } }
+  changed(); }
+const tname = (k, n) => n ? hex(n, 2) + ' ' + (song[k][n - 1].name || (song[k][n - 1].len > 1 || song[k][n - 1].data[0] ? 'CUSTOM' : 'EMPTY')) : 'OFF';
+const UKEY = 'fm1-opl3-user-presets', CATS = PRESET_CATS.concat(['USER']);
+const FACT = PRESET_RAW.map(p => ({ name: p[0], cat: p[1], n: p[6], inst: presetToInst(p) }));
+let userP = []; try { const u = JSON.parse(localStorage.getItem(UKEY)); if (Array.isArray(u)) userP = u.filter(x => x && x.inst && Array.isArray(x.inst.op)); } catch (e) {}
+const PL = () => FACT.concat(userP.map((u, k) => ({ name: u.name, cat: CATS.length - 1, n: u.n || 60, inst: u.inst, user: k })));
+function storeUser() { try { localStorage.setItem(UKEY, JSON.stringify(userP)); return true; } catch (e) { return false; } }
+function savePreset() {
+  if (userP.length >= 32) { flash('USER SLOTS FULL (32)'); return; }
+  const ins = JSON.parse(JSON.stringify(song.inst[st.isel - 1]));
+  userP.push({ name: ins.name.slice(0, 11), n: (st.oct + 1) * 12, inst: ins });
+  const ok = storeUser(); st.pi = PL().length - 1; flash(ok ? 'SAVED U' + String(userP.length).padStart(2, '0') + ' ' + ins.name : 'NOT STORED (BROWSER)');
+}
+function openName(target) { st.nt = target || 'ins'; st.nw = true; st.nm = (st.nt === 'song' ? song.name || '' : song.inst[st.isel - 1].name).slice(0, 11); st.nc = st.nm.length; st.tk = -1; }
+function commitName() { const nm = st.nm.trim() || 'NONAME'; snap(); st.nw = false;
+  if (st.nt === 'ren') { const k = st.nslot; try { const r = readSlot(k); r.song.name = nm; writeSlot(k, r.song); if (k === st.slot) song.name = nm; refreshSlots(); flash('RENAMED ' + nm); } catch (e) { flash('RENAME FAILED'); } return; }
+  if (st.nt === 'song') { song.name = nm; changed(); saveSlot(st.nslot); if (st.fsave) { st.fsave = false; st.page = st.ret || 'pat'; } return; }
+  song.inst[st.isel - 1].name = nm; changed(); savePreset(); }
+function nameIns(ch) { if (st.nm.length >= 11) { flash('MAX 11 CHARS'); return false; } st.nm = st.nm.slice(0, st.nc) + ch + st.nm.slice(st.nc); st.nc++; return true; }
+function nameKey(o) { const gch = KCH[o]; if (!gch) return; const now = performance.now();
+  if (st.tk === o && now - st.tt < 1000 && st.nc > 0) { st.ti = (st.ti + 1) % gch.length; st.nm = st.nm.slice(0, st.nc - 1) + gch[st.ti] + st.nm.slice(st.nc); }
+  else { st.ti = 0; if (!nameIns(gch[0])) return; }
+  st.tk = o; st.tt = now; }
+function nameBack(all) { if (all) { st.nm = ''; st.nc = 0; } else if (st.nc > 0) { st.nm = st.nm.slice(0, st.nc - 1) + st.nm.slice(st.nc); st.nc--; } st.tk = -1; }
+const NCH = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.#+/!?&()*<>=:\'"@$%^~_[]|,;';
+let delArm = -1e9;
+function deletePreset() { const e = PL()[st.pi]; if (e.user === undefined) { flash('FACTORY: READ ONLY'); return; }
+  if (performance.now() - delArm > 2000) { delArm = performance.now(); flash('EDIT AGAIN TO DELETE'); return; }
+  delArm = -1e9; userP.splice(e.user, 1); storeUser(); st.pi = clamp(st.pi, 0, PL().length - 1); flash('DELETED U' + String(e.user + 1).padStart(2, '0')); }
+function openPresets() { st.pw = true; const nm = song.inst[st.isel - 1].name, L = PL(); let j = -1; L.forEach((p, k) => { if (p.name === nm) j = k; }); if (j >= 0) st.pi = j; previewPreset(); }
+let pvTimer = null;
+function previewPreset() { const p = PL()[st.pi]; if (!ctx) return; clearTimeout(pvTimer);
+  post({ t: 'on', c: st.ch, note: p.n + (p.user === undefined ? (st.oct - 4) * 12 : 0), inst: st.isel, patch: p.inst }); pvTimer = setTimeout(() => post({ t: 'off', c: st.ch }), 450); }
+function loadPreset() { snap(); const ins = JSON.parse(JSON.stringify(PL()[st.pi].inst)); song.inst[st.isel - 1] = ins; st.pw = false; changed(); flash('INS ' + hex(st.isel, 2) + ' = ' + ins.name); }
+/* 4-op instruments follow AT2: instrument N (flagged) plays OP3/OP4 on the pair's first track, N+1 holds OP1/OP2 */
+const isPart = k => k > 1 && !!song.inst[k - 2] && !!song.inst[k - 2].four;
+function insStep(n, d) { const L = song.inst.length; let k = clamp(n + d, 1, L); while (isPart(k) && k > 1 && k < L) k += d >= 0 ? 1 : -1; if (isPart(k)) k--; return clamp(k, 1, L); }
+function halfOf() { const N = song.inst[st.isel - 1]; if (N.four && song.inst[st.isel]) return st.op < 2 ? { h: song.inst[st.isel], j: st.op } : { h: N, j: st.op - 2 }; return { h: N, j: Math.min(st.op, 1) }; }
+/* AT2 manual (adtrack2.htm): OP1..OP4 = M1 C1 M2 C2; the 4-op name joins the two halves' connections in YMF262 order —
+   first half (M1 C1) = instrument N+1, second half (M2 C2) = instrument N. conn bits as the player uses them: (N.con << 1) | (N+1).con */
+const connOf = N => (N.con << 1) | song.inst[song.inst.indexOf(N) + 1].con;
+const isCar = (N, g) => { if (!N.four) return g === 1 || !!N.con; return [[3], [0, 3], [1, 3], [0, 2, 3]][connOf(N)].includes(g); };
+const ALGN = ['FM', 'ADD', '4OP FM/FM', '4OP FM/AM', '4OP AM/FM', '4OP AM/AM'], A4 = [0, 2, 1, 3]; /* menu order FM/FM FM/AM AM/FM AM/AM → conn */
+const algOf = N => N.four && song.inst[song.inst.indexOf(N) + 1] ? 2 + A4.indexOf(connOf(N)) : N.con;
+function remapIns(f) { song.patterns.forEach(P => P && P.forEach(l => l.forEach(c => { if (c[1]) c[1] = f(c[1]); }))); st.inst = f(st.inst) || 1; st.mi = f(st.mi) || 1; }
+function setAlg(a) { const k = st.isel, N = song.inst[k - 1];
+  if (a >= 2 && song.opl === 2) return flash('4OP NEEDS OPL3');
+  if (a >= 2 && !N.four) { if (song.inst.length >= 255) return flash('NO ROOM FOR 4OP'); const P = JSON.parse(JSON.stringify(N)); P.name = cut(N.name, 54).slice(0, 8) + ' B'; delete P.four; delete P.fmm;
+    remapIns(v => v > k ? v + 1 : v); song.inst.splice(k, 0, P); N.four = true; }
+  if (a < 2 && N.four) { remapIns(v => v === k + 1 ? 0 : v > k + 1 ? v - 1 : v); song.inst.splice(k, 1); delete N.four; st.op = Math.min(st.op, 1); }
+  if (a >= 2) { const c = A4[a - 2]; N.con = c >> 1; song.inst[k].con = c & 1; } else N.con = a;
+  changed(); flash('ALG ' + ALGN[a]); }
+/* block editing: HOME+K1 rows, HOME+K2 channels; while a block is marked K3 transposes, PRESETS sets its instrument,
+   EDIT clears it, HOME+OCT− copies, HOME+OCT+ pastes at the cursor, a HOME tap drops the mark */
+function blockRect() { const b = st.blk, T = TRACKS(); if (!b) return null; const i0 = Math.min(b.c0, b.c1), i1 = Math.max(b.c0, b.c1);
+  return { r0: Math.min(b.r0, b.r1), r1: Math.max(b.r0, b.r1), ch: T.slice(i0, i1 + 1) }; }
+function inBlock(r, ch) { const B = blockRect(); return !!B && r >= B.r0 && r <= B.r1 && B.ch.includes(ch); }
+function blockEach(f) { const B = blockRect(), p = pat(curPat()); for (let r = B.r0; r <= B.r1; r++) B.ch.forEach(ch => f(p[r][ch], r, ch)); }
+function blockStart() { if (!st.blk) { const i = TRACKS().indexOf(st.ch); st.blk = { r0: st.row, r1: st.row, c0: i, c1: i }; } }
+function blockRows(d) { blockStart(); st.blk.r1 = clamp(st.blk.r1 + d, 0, song.rows - 1); st.row = st.blk.r1; }
+function blockCols(d) { blockStart(); const T = TRACKS(); st.blk.c1 = clamp(st.blk.c1 + d, 0, T.length - 1); st.ch = T[st.blk.c1]; }
+function blockCopy() { if (!st.blk) { clip = { pat: JSON.stringify(pat(curPat())) }; return flash('COPIED PATTERN'); }
+  const B = blockRect(), p = pat(curPat()); clip = { rows: B.r1 - B.r0 + 1, cells: [] };
+  for (let r = B.r0; r <= B.r1; r++) clip.cells.push(B.ch.map(ch => p[r][ch].slice())); flash('COPIED ' + clip.rows + '×' + B.ch.length); }
+function blockPaste() { if (!clip) return flash('NOTHING COPIED'); snap();
+  if (clip.pat) { song.patterns[curPat()] = JSON.parse(clip.pat); changed(); return flash('PASTED PATTERN'); }
+  const T = TRACKS(), i0 = T.indexOf(st.ch), p = pat(curPat());
+  clip.cells.forEach((row, k) => { const r = st.row + k; if (r >= song.rows) return; row.forEach((c, j) => { const ch = T[i0 + j]; if (ch !== undefined) p[r][ch] = c.slice(); }); });
+  changed(); flash('PASTED ' + clip.cells.length + '×' + clip.cells[0].length); }
+function blockClear() { snap(); blockEach(c => { c.splice(0, 6, -1, 0, -1, 0, -1, 0); }); changed(); flash('BLOCK CLEARED'); }
+function blockTrans(d) { snap(); let n = 0; blockEach(c => { if (c[0] >= 0) { c[0] = clamp(c[0] + d, 12, 107); n++; } }); changed(); flash((d > 0 ? '+' : '') + d + ' · ' + n + ' NOTES'); }
+function blockIns(d) { snap(); const v = insStep(st.inst, d); let n = 0; blockEach(c => { if (c[0] >= 0) { c[1] = v; n++; } }); st.inst = v; changed(); flash(n + ' NOTES → ' + hex(v, 2) + ' ' + song.inst[v - 1].name); }
+function presetTurn(d, all) {
+  if (st.blk) return blockIns(d);
+  const n = song.inst.length, c = cell(); st.field = 1;
+  if (all) { const p = pat(curPat()), v = clamp((c[1] || st.inst) + d, 1, n); snap(); let k = 0;
+    p.forEach(l => { const x = l[st.ch]; if (x[0] >= 0) { x[1] = v; k++; } }); st.inst = v; changed(); flash(`CH${hex(st.ch + 1, 2)} ${k} -> ${hex(v, 2)} ${song.inst[v - 1].name}`); return; }
+  if (c[0] >= 0 || c[1] > 0) { snap(); c[1] = insStep(c[1] || st.inst, d); st.inst = c[1]; changed(); }
+  else st.inst = insStep(st.inst, d);
+  flash(hex(st.inst, 2) + ' ' + song.inst[st.inst - 1].name);
+}
+function deleteNote(all) { snap(); const c = cell();
+  if (all) { c[0] = -1; c[1] = 0; c[2] = -1; c[3] = 0; c[4] = -1; c[5] = 0; flash('CELL CLEARED'); }
+  else if (st.field >= 2) { const i = fxi(st.field); c[i] = -1; c[i + 1] = 0; flash('FX' + (st.field - 1) + ' DELETED'); }
+  else { c[0] = -1; c[1] = 0; flash('NOTE DELETED'); }
+  changed(); if (st.rec) move(+S.step); }
+function typeHex(d) { snap(); const c = cell();
+  if (st.field === 1) { const v = (c[1] * 16 + d) & 255; c[1] = v > song.inst.length ? d : v; }
+  else { const i = fxi(st.field), v = (((c[i] < 0 ? 0 : c[i]) << 8 | c[i + 1]) << 4 | d) & 0xFFF; c[i] = v >> 8; c[i + 1] = Math.min(fxMax(c[i]), v & 255); }
+  if (st.field === 1) c[1] = clamp(c[1], 0, song.inst.length);
+  changed(); }
+// knob 4: value of FX1 / FX2 at the cursor (an empty slot becomes C = set volume)
+function fxValue(fld, d) { snap(); const c = cell(), i = fxi(fld); st.scope = 0; if (st.compact) st.compact = false; st.field = fld;
+  if (c[i] < 0) { c[i] = 12; c[i + 1] = d < 0 ? 62 : 63; flash('FX' + (fld - 1) + ' C SET VOLUME'); }
+  else c[i + 1] = clamp(c[i + 1] + d, 0, fxMax(c[i]));
+  changed(); }
+// knob 3: effect command of the focused FX slot (FX1 unless FX2 has focus)
+function fxType(d, cat) { snap(); const c = cell(); st.scope = 0; if (st.compact) st.compact = false; if (st.field < 2) st.field = 2; const i = fxi(st.field);
+  let k = Math.max(0, fxEntry(c[i], c[i + 1]));
+  if (cat) { const cc = FXL[k].cat; const nc = ((cc + d) % FXCATS.length + FXCATS.length) % FXCATS.length; k = FXL.findIndex(x => x.cat === nc); }
+  else k = (k + d + FXL.length) % FXL.length;
+  fxApply(c, i, FXL[k]); flash('FX' + (st.field - 1) + ' ' + fxCode(FXL[k]) + ' ' + FXL[k].name); changed(); }
+// long-press FX: pick the command from a list
+function openFxPicker() { if (st.page !== 'pat') st.page = 'pat'; st.scope = 0; if (st.compact) st.compact = false; if (st.field < 2) st.field = 2; const c = cell(), i = fxi(st.field);
+  st.fxp = { k: Math.max(0, fxEntry(c[i], c[i + 1])) }; }
+function fxpMove(d, cat) { const p = st.fxp; if (cat) { const cc = Math.max(0, FXL[p.k].cat), nc = (cc + d + FXCATS.length) % FXCATS.length; p.k = FXL.findIndex(x => x.cat === nc); } else p.k = clamp(p.k + d, 0, FXL.length - 1); }
+function fxpPick() { snap(); const c = cell(), i = fxi(st.field), x = FXL[st.fxp.k]; fxApply(c, i, x); st.fxp = null; changed(); flash('FX' + (st.field - 1) + ' ' + fxCode(x)); }
+function fxpCancel() { st.fxp = null; flash('CANCELLED'); }
+/* a key on the pattern page sets the cursor's note; with REC it moves on by STEP */
+function enterNote(n, adv = true) { snap(); const c = cell(); c[0] = n; if (n >= 0) c[1] = st.inst;
+  const I = song.inst[st.inst - 1]; if (n >= 0 && I && I.four) { const p = HI4.indexOf(st.ch);
+    if (song.opl === 2) flash('4OP NEEDS OPL3: PLAYS AS 2-OP');
+    else if (p < 0) flash('4OP: USE CH 01 03 05 10 12 14');
+    else { if (!(song.four >> p & 1)) { song.four |= 1 << p; flash('4OP PAIR ' + (st.ch + 1) + '+' + (st.ch + 2) + ' ON'); } pat(curPat())[st.row][st.ch + 1][1] = st.inst + 1; } }
+  changed(); if (adv) move(+S.step); }
+function knob(i, d) {
+  const sh = st.shift || keyShift;
+  if (i === 'mst') { master = clamp(Math.round((master + d * 0.02) * 100) / 100, 0, 1); if (gainNode) gainNode.gain.value = master * master; flash('MASTER ' + Math.round(master * 100) + '%'); return; }
+  if (aboutInput('knob', i, d)) return;
+  if (sh && st.shift) st.used = true;
+  if (st.menu) { menuKnob(i, d); return; }
+  if (st.fxp) { if (i === 0) fxpMove(d, true); else if (i === 'sel' || i === 'pre' || i === 'alg') fxpMove(d, sh); return; }
+  if (st.page === 'glo') { gloKnob(i, d, sh); return; }
+  if (st.page === 'pat' && st.scope && !st.nw) { if (i === 1 && !sh) stepCh(d); else if (i === 'pre') presetTurn(d, sh); return; }   /* (the waveform screen: K2 channel, PRESETS the keys' instrument) */
+  if (i === 'sel' && st.page !== 'mac' && !st.nw && !(st.page === 'ins' && st.pw) && st.page !== 'file') { if (st.page === 'pat') { move(d * (sh ? 16 : 1)); preview(); } else if (st.page === 'ins') st.ipg = (st.ipg + d + 4) % 4; else st.ord = clamp(st.ord + d, 0, song.order.length - 1); return; }
+  if (st.nw) { if (i === 0 || i === 'sel') { st.nc = clamp(st.nc + d, 0, st.nm.length); st.tk = -1; }
+    else if (i === 1) { if (st.nc >= st.nm.length && !nameIns('A')) return; const p = st.nc < st.nm.length ? st.nc : st.nc - 1, j = (NCH.indexOf(st.nm[p]) + d + NCH.length) % NCH.length; st.nm = st.nm.slice(0, p) + NCH[j] + st.nm.slice(p + 1); st.tk = -1; }
+    else if (i === 'mst') knob('mst', d);
+    return; }
+  if (st.page === 'file') { if (i === 0 || i === 'sel' || i === 'pre') st.fsel = clamp(st.fsel + d, 0, 3); else if (i === 'mst') knob('mst', d); return; }
+  if (st.page === 'mac' && st.mk === 'reg') return regKnob(i, d, sh);
+  if (st.page === 'mac') { const t = mtab(), A = st.mk === 'arp', lim = A ? 48 : 64;
+    if (i === 0) { st.mt = clamp(st.mt + d, 1, 16); st.shp = -1; return; }
+    if (i === 1) { st.ms = clamp(st.ms + d, 0, 15); return; }
+    if (i === 'mst') return knob('mst', d);
+    snap();
+    if (i === 2) { t.data[st.ms] = clamp(t.data[st.ms] + d * (sh ? (A ? 12 : 8) : 1), -lim, lim); if (st.ms >= t.len) t.len = st.ms + 1; t.name = ''; }
+    else if (i === 3) { if (sh && !A) t.delay = clamp(t.delay + d, 0, 64); else t.spd = clamp(t.spd + d, 1, 16); }
+    else if (i === 'sel') { t.len = clamp(t.len + d, 1, 16); if (t.loop >= t.len) t.loop = t.len - 1; }
+    else if (i === 'alg') t.loop = clamp(t.loop + d, -1, t.len - 1);
+    else if (i === 'pre' && !sh) { st.mi = clamp(st.mi + d, 1, song.inst.length); flash('PREVIEW ' + hex(st.mi, 2) + ' ' + song.inst[st.mi - 1].name); return; }
+    else if (i === 'pre') { const S = A ? ARP_SHAPES : VIB_SHAPES; st.shp = (st.shp + d + S.length) % S.length; const n = shapeTable(st.mk, st.shp); n.spd = t.spd; Object.assign(t, n, { name: S[st.shp][0] }); flash(S[st.shp][0]); }
+    changed(); return; }
+  if (st.page === 'ins' && st.pw) { const L = PL(); if (i === 'pre' || i === 'sel') { st.pi = clamp(st.pi + d, 0, L.length - 1); previewPreset(); }
+    else if (i === 0) { let c = L[st.pi].cat + d; while (c >= 0 && c < CATS.length && !L.some(p => p.cat === c)) c += d; if (c >= 0 && c < CATS.length) { st.pi = L.findIndex(p => p.cat === c); previewPreset(); } }
+    else if (i === 'mst') return knob('mst', d);
+    return; }
+  if (i === 'pre') { if (st.page === 'pat') presetTurn(d, sh); else if (st.page === 'ins') openPresets(); else knob(1, d); return; }
+  if (i === 'alg') { if (st.page === 'pat') { if (sh) stepCh(d); else moveField(d); }
+    else if (st.page === 'ins') { snap(); setAlg(clamp(algOf(song.inst[st.isel - 1]) + d, 0, 5)); }
+    else knob(2, d); return; }
+  if (st.page === 'pat') {
+    if (i === 0 && sh) blockRows(d);
+    else if (i === 1 && sh) blockCols(d);
+    else if (i === 0) { snap(); const k = orderPos(song.order, st.ord); song.order[k] = clamp(song.order[k] + d, 0, 127); pat(song.order[k]); changed(); flash('PATTERN ' + hex(curPat(), 2)); st.blk = null; }
+    else if (i === 1) stepCh(d);
+    else if (i === 2) { if (st.blk) blockTrans(sh ? d * 12 : d); else fxType(d, sh); }
+    else if (i === 3) fxValue(st.field === 3 ? 3 : 2, d * (sh ? 16 : 1));
+  } else if (st.page === 'ins') {
+    const N0 = song.inst[st.isel - 1], { h: ins, j: oj } = halfOf(), o = ins.op[oj];
+    if (st.ipg === 0 && i === 0) { const n = st.isel + d;
+      if (n > song.inst.length && song.inst.length < 255) { snap(); const c = JSON.parse(JSON.stringify(N0)); delete c.four; delete c.fmm; c.name = 'INS ' + hex(song.inst.length + 1, 2); song.inst.push(c); changed(); flash('NEW INS ' + hex(song.inst.length, 2)); st.isel = song.inst.length; st.op = Math.min(st.op, 1); return; }
+      st.isel = insStep(st.isel, d); if (!song.inst[st.isel - 1].four) st.op = Math.min(st.op, 1); return; }
+    if (st.ipg === 0 && i === 2 && !sh) { st.flag = (st.flag + d + 4) % 4; return; }
+    snap();
+    if (st.ipg === 0) { if (i === 1) o.ws = (o.ws + d + 8) % 8; else if (i === 2) { const k = FLAGS[st.flag][0]; o[k] = d > 0 ? 1 : 0; } else o.mult = clamp(o.mult + d, 0, 15); }
+    else if (st.ipg === 1) { const k = ['ar', 'dr', 'sl', 'rr'][i]; o[k] = clamp(o[k] - d, 0, 15); }
+    else if (st.ipg === 2) { if (i === 0) o.tl = clamp(o.tl - d * (sh ? 8 : 1), 0, 63); else if (i === 1) { const F = N0.four ? song.inst[st.isel] : ins; F.fb = clamp(F.fb + d, 0, 7); } else if (i === 2) N0.ft = clamp((N0.ft || 0) + d * (sh ? 10 : 1), -99, 99); else { N0.pan = (N0.pan + d + 3) % 3; if (N0.four) song.inst[st.isel].pan = N0.pan; } }
+    else { if (i === 0) { const j = clamp(KSLO.indexOf(o.ksl) + d, 0, 3); o.ksl = KSLO[j]; } else if (i === 1) { return setAlg(clamp(algOf(N0) + d, 0, 5)); } else if (i === 2) N0.arpT = clamp((N0.arpT || 0) + d, 0, 16); else N0.vibT = clamp((N0.vibT || 0) + d, 0, 16); }
+    changed();
+  } else {
+    if (i === 0) st.ord = clamp(st.ord + d, 0, song.order.length - 1);
+    else if (i === 1) { snap(); const v = clamp(song.order[st.ord] + d, 0, 127 + song.order.length); song.order[st.ord] = v; if (v < 128) pat(v); changed(); flash(v < 128 ? 'PATTERN ' + hex(v, 2) : 'JUMP TO ' + hex(v - 128, 2)); }
+    else if (i === 2) { snap(); if (d > 0 && song.order.length < 128) song.order.push(song.order[song.order.length - 1]); else if (d < 0 && song.order.length > 1) song.order.pop(); st.ord = clamp(st.ord, 0, song.order.length - 1); changed(); flash('LENGTH ' + song.order.length); }
+    else st.ord = clamp(st.ord + d * 4, 0, song.order.length - 1);
+  }
+}
+
+/* notes */
+const held = new Map();
+let keyShift = false;
+async function noteDown(n, id) {
+  if (aboutInput('key', n)) { await startAudio(); return; }
+  if (st.nw) { nameKey(n - base()); held.set(id, { n, c: -1 }); lightKey(n, true); return; }
+  await startAudio();
+  const ins = st.page === 'ins' ? st.isel : st.inst;
+  post({ t: 'on', c: st.ch, note: n, inst: ins, patch: st.page === 'ins' && st.pw ? PL()[st.pi].inst : st.page === 'mac' ? (st.mk === 'reg' ? JSON.parse(JSON.stringify(song.inst[st.mi - 1])) : Object.assign(JSON.parse(JSON.stringify(song.inst[st.mi - 1])), { [st.mk + 'T']: st.mt })) : null }); held.set(id, { n, c: st.ch }); lightKey(n, true);
+  if (st.page === 'pat' && st.field <= 1 && !st.scope) enterNote(n, st.rec);
+}
+function noteUp(id) { const h = held.get(id); if (!h) return; held.delete(id); lightKey(h.n, false);
+  if (h.c >= 0 && ![...held.values()].some(v => v.c === h.c)) post({ t: 'off', c: h.c }); }
+function noteOffEntry() { if (st.page === 'pat' && !st.scope) { enterNote(-2, st.rec); flash('NOTE OFF'); } }
+/* while playing: the note sounding in the cursor's track (the last note above the play row in its pattern; -1 none) */
+function playKey() { if (!st.playing || st.prow < 0) return -1; const o = song.order[st.pord], p = o < 128 ? song.patterns[o] : null; if (!p) return -1;
+  for (let r = Math.min(st.prow, p.length - 1); r >= 0; r--) { const n = p[r][st.ch][0]; if (n >= 0) return n; if (n === -2) return -1; } return -1; }
+
+/* buttons */
+const TOP = ['FX', 'SEL', 'ENV', 'LFO', 'EDIT', 'GLO'], BOT = ['HOME', 'SAVE', 'ARP', 'SEQ', 'PLAY', 'REC'];
+const bwrap = $('#btns'), owrap = $('#octs');
+const bhtml = n => `<button class="btn${n.startsWith('OCT') ? ' sb' : ''}" data-n="${n}" aria-label="${n}">${n === 'PLAY' ? 'PLAY/STOP' : n}<b></b></button>`;
+bwrap.innerHTML = TOP.concat(BOT).map(bhtml).join('');
+owrap.innerHTML = ['OCT−', 'OCT+'].map(bhtml).join('');
+let saveTimer = null, fxTimer = null, homeTimer = null, clip = null;
+function press(n) {
+  const sh = st.shift;
+  if (st.ask) { if (n === 'OCT+') askAnswer(true); else if (n === 'OCT−') askAnswer(false); return; }
+  if (st.menu) { if (n === 'OCT+' || n === 'OCT−') menuValue(n === 'OCT+' ? 1 : -1); else if (n === 'SEL' && menuRows()[st.menu.row][1] === 'info') openInfo(); return; }
+  if (st.fxp) { if (n === 'SEL' || n === 'FX') fxpPick(); else fxpCancel(); return; }
+  if (st.nw) { if (n === 'ENV') { st.nw = false; flash('CANCELLED'); } else if (n === 'EDIT') nameBack(sh); return; }
+  if (st.page === 'file') {
+    if (st.imp) { if (n === 'ENV') cancelImport(); return; }
+    if (owArmed()) { st.owK = -1; flash('OVERWRITE CANCELLED'); return; }
+    if (n === 'SEL') { loadSlot(st.fsel); return; } if (n === 'EDIT') { renameSlot(st.fsel); return; } if (n === 'OCT−') { deleteSlot(st.fsel); return; } if (n === 'OCT+') { newFromFile(); return; }
+    if (n === 'FX') { exportSong(); return; } if (n === 'ENV') { startImportWait(); return; }
+    fileCancel(); return; }
+  if (st.pw && st.page === 'ins') { if (n === 'SEL') { loadPreset(); return; } if (n === 'ENV') { st.pw = false; flash('CANCELLED'); return; } if (n === 'EDIT') { deletePreset(); return; } }
+  if (n !== 'HOME' && sh) st.used = true;
+  if (n === 'EDIT' && st.page === 'mac' && st.mk === 'reg') { const M = regMac(false); if (!M) return; snap(); if (sh) { regIns().fmm = undefined; flash('MACRO CLEARED'); } else if (M.len) { M.steps.splice(st.rs || 0, 1); M.len = Math.max(0, M.len - 1); st.rs = Math.min(st.rs || 0, Math.max(0, M.len - 1)); flash('STEP DELETED'); } changed(); return; }
+  if (n === 'EDIT') { if (st.page === 'mac') { snap(); const t = mtab(); if (sh) { t.data.fill(0); t.len = 1; t.loop = -1; t.delay = 0; t.name = ''; flash('TABLE CLEARED'); } else { t.data[st.ms] = 0; t.name = ''; flash('STEP ' + st.ms + ' = 0'); } changed(); return; }
+    if (st.page === 'pat') { if (st.scope) return; if (st.blk) blockClear(); else deleteNote(sh); } else if (st.page === 'seq') { if (song.order.length > 1) { snap(); song.order.splice(st.ord, 1); st.ord = clamp(st.ord, 0, song.order.length - 1); changed(); flash('DELETED'); } } }
+  else if (n === 'ENV') { if (st.page === 'ins') st.ipg = (st.ipg + 1) % 4; else st.page = 'ins'; }
+  else if (n === 'SEQ') st.page = 'seq';
+  else if (n === 'GLO') { if (sh) { st.ret = st.page; st.fsave = false; st.owK = -1; st.page = 'file'; st.fsel = st.slot >= 0 ? st.slot : st.fsel; refreshSlots(); } else if (st.page === 'glo') st.gpg = (st.gpg + 1) % 3; else { st.ret = st.page; st.page = 'glo'; } }
+  else if (n === 'SEL') { if (st.page === 'ins') { const f4 = song.inst[st.isel - 1].four; st.op = (st.op + 1) % (f4 ? 4 : 2); flash(f4 ? 'OP' + (st.op + 1) : st.op ? 'CARRIER (OP2)' : 'MODULATOR (OP1)'); } else if (st.page === 'pat') { const G = groups(), gi = Math.max(0, G.findIndex(g => g.includes(st.ch))); st.ch = G[(gi + (sh ? G.length - 1 : 1)) % G.length][0]; } }
+  else if (n === 'FX') { if (st.page !== 'pat') st.page = 'pat'; else { st.scope = 0; if (st.compact) st.compact = false; st.field = st.field < 2 ? 2 : st.field === 2 ? 3 : 0; flash(st.field ? 'FX' + (st.field - 1) : 'NOTE'); } }
+  else if (n === 'ARP') { if (st.page === 'mac') { st.mk = { arp: 'vib', vib: 'reg', reg: 'arp' }[st.mk]; st.ms = 0; st.shp = -1; flash({ arp: 'ARPEGGIO TABLES', vib: 'VIBRATO TABLES', reg: 'FM REGISTER MACRO' }[st.mk]); } else { st.page = 'mac'; st.pw = false; st.mi = clamp(st.inst, 1, song.inst.length); } }
+  else if (n === 'LFO') { snap(); song.lfo = ((song.lfo || 0) + 1) % 4; changed(); flash(['LFO SOFT', 'VIB DEEP', 'AM DEEP', 'AM+VIB DEEP'][song.lfo]); }
+  else if (n === 'REC') { if (sh) { mute[st.ch] = !mute[st.ch]; post({ t: 'mute', mute }); flash(mute[st.ch] ? 'MUTE CH' + hex(st.ch + 1, 2) : 'UNMUTE'); } else st.rec = !st.rec; }
+  else if (n === 'PLAY') toggle(sh);
+  else if (n === 'OCT−' || n === 'OCT+') { const up = n === 'OCT+';
+    if (sh && st.page === 'pat') { if (!up) blockCopy(); else blockPaste(); }
+    else if (st.page === 'seq' && up) { snap(); song.order.splice(st.ord + 1, 0, song.order[st.ord]); st.ord++; changed(); flash('INSERTED'); }
+    else if (st.page === 'seq') { if (song.order.length > 1) { snap(); song.order.splice(st.ord, 1); st.ord = clamp(st.ord, 0, song.order.length - 1); changed(); flash('DELETED'); } else flash('LAST POSITION'); }
+    else { st.oct = clamp(st.oct + (up ? 1 : -1), 1, 7); flash('OCTAVE ' + sgn(st.oct - 4)); } }
+}
+const sgn = v => (v > 0 ? '+' : '') + v;
+const SKEY = k => 'fm1-opl3-slot-' + k, MKEY = k => 'fm1-opl3-slotmeta-' + k;
+let slots = [null, null, null, null], ovArm = -1e9, slDel = -1e9, slNew = -1e9;
+const toB64 = u => { let t = ''; for (let i = 0; i < u.length; i += 32768) t += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(t); };
+const fromB64 = t => { const r = atob(t), u = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) u[i] = r.charCodeAt(i); return u; };
+function metaOf(sg, size) { return { name: sg.name || 'NONAME', size, pats: sg.patterns.filter(Boolean).length, len: sg.order.length, date: Date.now() }; }
+function writeSlot(k, sg) { const a = exportA2M(sg); localStorage.setItem(SKEY(k), toB64(a)); const m = metaOf(sg, a.length); localStorage.setItem(MKEY(k), JSON.stringify(m)); return m; }
+function refreshSlots() { for (let k = 0; k < 4; k++) { try { const t = localStorage.getItem(SKEY(k)); if (!t) { slots[k] = null; continue; }
+  if (t[0] === '{') writeSlot(k, normSong(JSON.parse(t)));
+  slots[k] = JSON.parse(localStorage.getItem(MKEY(k))) || { name: '?', size: 0, pats: 0, len: 0, date: 0 }; } catch (e) { slots[k] = null; } } }
+function readSlot(k) { return importA2M(fromB64(localStorage.getItem(SKEY(k)))); }
+function saveSlot(k) {
+  try { const m = writeSlot(k, song); localStorage.setItem(KEY, JSON.stringify(song)); localStorage.setItem(KEY + '-slot', String(k)); st.slot = k; st.fsel = k; st.dirty = false; st.owK = -1; refreshSlots(); flash('SAVED SLOT ' + (k + 1) + ' · ' + m.size + 'B A2M'); }
+  catch (e) { flash('SAVE FAILED (STORAGE)'); } }
+function useSong(x, k) { snap(); if (st.playing) stop(); song = x; st.slot = k; st.ord = 0; st.row = 0; st.isel = 1; st.inst = 1; try { localStorage.setItem(KEY, JSON.stringify(song)); localStorage.setItem(KEY + '-slot', String(k)); } catch (e) {} changed(); st.dirty = false; }
+function loadSlot(k) { if (!slots[k]) { flash('SLOT ' + (k + 1) + ' IS EMPTY'); return; }
+  try { const r = readSlot(k); useSong(r.song, k); flash('LOADED SLOT ' + (k + 1)); st.page = 'pat'; } catch (e) { flash('LOAD FAILED: ' + e.message); } }
+function deleteSlot(k) { if (!slots[k]) { flash('SLOT ' + (k + 1) + ' IS EMPTY'); return; } if (performance.now() - slDel > 2000) { slDel = performance.now(); flash('OCT− AGAIN: DELETE ' + (k + 1)); return; }
+  slDel = -1e9; try { localStorage.removeItem(SKEY(k)); localStorage.removeItem(MKEY(k)); } catch (e) {} if (st.slot === k) st.slot = -1; refreshSlots(); flash('SLOT ' + (k + 1) + ' DELETED'); }
+function newFromFile() { if (performance.now() - slNew > 2000) { slNew = performance.now(); flash('OCT+ AGAIN: NEW SONG'); return; }
+  slNew = -1e9; useSong(newSong(), -1); st.blk = false; flash('NEW SONG'); st.page = 'pat'; }
+function save() { if (st.fxp) return fxpPick(); if (st.nw) return commitName(); refreshSlots();
+  if (st.page === 'file') { if (st.imp === 'got') return storeImport(); if (st.imp) return; return fileSave(st.fsel); }
+  st.ret = st.page; st.fsave = true; st.page = 'file'; st.owK = -1;
+  st.fsel = st.slot >= 0 ? st.slot : Math.max(0, slots.findIndex(x => !x)); flash('PICK SLOT, THEN SAVE'); }
+/* USB import: the device waits, the update page on the computer sends a file */
+function startImportWait() { st.imp = 'wait'; st.impData = null; st.page = 'file'; updUsb(); flash('USB IMPORT: WAITING'); }
+const owArmed = () => st.owK >= 0 && st.owK === st.fsel && performance.now() - st.owT < 4000;
+function fileSave(k) {
+  if (!slots[k]) { st.nslot = k; return openName('song'); }
+  if (k === st.slot && !st.dirty) { saveSlot(k); return fileDone(); }
+  if (!owArmed()) { st.owK = k; st.owT = performance.now(); return; }
+  st.owK = -1; saveSlot(k); fileDone(); }
+function fileDone() { if (st.fsave) { st.fsave = false; st.page = st.ret || 'pat'; } }
+function fileCancel() { st.fsave = false; st.owK = -1; st.page = st.ret && st.ret !== 'file' ? st.ret : 'pat'; flash('CANCELLED'); }
+function renameSlot(k) { if (!slots[k]) { flash('EMPTY SLOT: SAVE TO NAME'); return; } st.nslot = k; st.nt = 'ren'; st.nw = true; st.nm = (slots[k].name || '').slice(0, 11); st.nc = st.nm.length; st.tk = -1; }
+/* GLOBAL page: song-wide settings (saved with the song) */
+const ROWOPT = [16, 32, 48, 64, 96, 128, 192, 256];
+function setRows(n, force) { if (n === song.rows) return;
+  if (n < song.rows && !force) { const used = song.patterns.some(P => P && P.slice(n).some(l => l.some(c => c[0] !== -1 || c[2] >= 0 || c[4] >= 0)));
+    if (used) { flash('NOTES BELOW ROW ' + hex(n, 2) + ': HOME+TURN CUTS'); return; } }
+  snap(); song.patterns = song.patterns.map(P => { if (!P) return P; const Q = P.slice(0, n); while (Q.length < n) Q.push(emptyPattern(1)[0]); return Q; });
+  song.rows = n; st.row = Math.min(st.row, n - 1); changed(); flash('ROWS ' + n); }
+// things an OPL2 (YM3812) cannot play, listed before switching
+function opl2Issues() { const L = []; let notes = 0, fx = 0, wfx = 0, pfx = 0;
+  song.patterns.forEach(P => P && P.forEach(l => l.forEach((c, ch) => { if (ch >= 9) { if (c[0] !== -1) notes++; if (c[2] >= 0 || c[4] >= 0) fx++; }
+    [[c[2], c[3]], [c[4], c[5]]].forEach(([f, v]) => { if (f === 19 && ((v >> 4) > 3 || (v & 15) > 3)) wfx++; if (f === 35 && (v >> 4) === 11 && (v & 15) !== 0) pfx++; }); })));
+  if (notes || fx) L.push('CH10–18: ' + (notes ? notes + ' NOTES' : '') + (notes && fx ? ' · ' : '') + (fx ? fx + ' FX' : '') + ' MUTED');
+  const w = song.inst.filter(i => i.op.some(o => o.ws > 3)).length; if (w) L.push(w + ' INSTR USE WAVES 4–7 → 0–3');
+  if (wfx) L.push(wfx + ' J WAVE FX ABOVE 3 → 0–3');
+  const p = song.inst.filter(i => i.pan !== 1).length; if (p) L.push(p + ' INSTR PANNED L/R → MONO');
+  if (pfx) L.push(pfx + ' Z B PANNING FX IGNORED');
+  return L; }
+function toOpl2() { song.opl = 2; st.ch = Math.min(st.ch, 8); for (let c = 9; c < 18; c++) mute[c] = false; changed(); flash('OPL2 · 9 CHANNELS'); }
+function ask(title, items, yes, no, ok, noMsg) { st.ask = { title, items, yes, no, ok, noMsg }; }
+function askAnswer(y) { const a = st.ask; st.ask = null; if (y) { snap(); a.ok(); } else flash(a.noMsg); }
+function percIssues(on) { const L = []; if (!on) return L; let n = 0; song.patterns.forEach(P => P && P.forEach(l => [15, 16, 17].forEach(c => { if (l[c][0] !== -1) n++; })));
+  if (n) L.push('CH16–18: ' + n + ' NOTES PLAY AS BD SD TT'); if (song.opl === 2) { let m = 0; song.patterns.forEach(P => P && P.forEach(l => [6, 7, 8].forEach(c => { if (l[c][0] !== -1) m++; }))); if (m) L.push('CH07–09: ' + m + ' NOTES SILENT IN OPL2'); } return L; }
+function pairIssues(p) { const lo = HI4[p] + 1; let n = 0; song.patterns.forEach(P => P && P.forEach(l => { if (l[lo][0] >= 0) n++; })); return n ? ['CH' + String(lo + 1).padStart(2, '0') + ': ' + n + ' NOTES WILL BE SILENT'] : []; }
+function setPerc(on) { song.perc = on; if (!on && st.ch >= 18) st.ch = 0; changed(); flash(on ? 'PERCUSSION ON · BD SD TT CY HH' : 'PERCUSSION OFF'); }
+function setPair(p, on) { song.four = on ? song.four | 1 << p : song.four & ~(1 << p); changed(); flash('4OP ' + (HI4[p] + 1) + '-' + (HI4[p] + 2) + (on ? ' ON' : ' OFF')); }
+function gloKnob(i, d, sh) { if (st.ask) return;
+  if (i === 'sel' || i === 'pre') { st.gpg = (st.gpg + d + 3) % 3; return; } if (i === 'mst') return knob('mst', d); if (i === 'alg') return;
+  snap();
+  if (st.gpg === 0) {
+    if (i === 0) song.bpm = clamp(song.bpm + d * (sh ? 10 : 1), 32, 255);
+    else if (i === 1) song.speed = clamp(song.speed + d, 1, 31);
+    else if (i === 2) { const k = clamp(ROWOPT.indexOf(song.rows) < 0 ? 3 : ROWOPT.indexOf(song.rows) + d, 0, ROWOPT.length - 1); return setRows(ROWOPT[k], sh); }
+    else song.gvol = clamp(song.gvol + d * (sh ? 8 : 1), 0, 63);
+  } else if (st.gpg === 1) {
+    if (i === 0) { if (d > 0) { song.opl = 3; flash('OPL3 · 18 CHANNELS'); }
+      else if (song.opl !== 2) { const iss = opl2Issues(); if (iss.length) return ask('SWITCH TO OPL2?', iss, 'OK, USE OPL2', 'KEEP OPL3', toOpl2, 'KEPT OPL3'); toOpl2(); } }
+    else if (i === 1) song.lfo = (song.lfo & 1) | (d > 0 ? 2 : 0);
+    else if (i === 2) song.lfo = (song.lfo & 2) | (d > 0 ? 1 : 0);
+    else song.vtab = clamp((song.vtab || 0) + d * (sh ? 16 : 1), 0, 255);
+  } else {
+    if (i === 0) { const on = d > 0; if (on === !!song.perc) return; const L = percIssues(on); if (L.length) return ask('PERCUSSION ON?', L, 'OK, DRUMS ON', 'KEEP IT OFF', () => setPerc(true), 'PERCUSSION OFF'); return setPerc(on); }
+    if (i === 1) { st.p4 = clamp((st.p4 || 0) + d, 0, 5); return; }
+    if (i === 2) { const p = st.p4 || 0, on = d > 0; if (song.opl === 2) return flash('4OP NEEDS OPL3'); if (on === !!(song.four >> p & 1)) return;
+      const L = on ? pairIssues(p) : []; if (L.length) return ask('4OP PAIR ON?', L, 'OK, PAIR THEM', 'KEEP 2-OP', () => setPair(p, true), 'KEPT 2-OP'); return setPair(p, on); }
+    song.mspd = clamp((song.mspd || 1) + d, 1, 8);
+  }
+  changed(); }
+/* device settings menu (hold HOME) */
+const menuRows = () => SETDEF.filter(r => r[0] === st.menu.tab);
+function openMenu() { st.menu = { tab: 0, row: 0 }; st.fxp = null; flash('SETTINGS'); }
+function closeMenu() { st.menu = null; saveSettings(); flash('SETTINGS SAVED'); }
+function menuKnob(i, d) { const m = st.menu;
+  if (i === 'alg') { m.tab = (m.tab + d + SETTABS.length) % SETTABS.length; m.row = 0; return; }
+  if (i === 'pre' || i === 'sel') { m.row = clamp(m.row + d, 0, menuRows().length - 1); return; }
+  if (i === 'mst') return knob('mst', d);
+  menuValue(d); }
+function menuValue(d) { const r = menuRows()[st.menu.row], k = r[1];
+  if (k === 'reset') { if (d > 0) { SETDEF.forEach(q => S[q[1]] = q[4]); applySettings(); saveSettings(); flash('SETTINGS RESET'); } return; }
+  if (k === 'info') { if (d > 0) openInfo(); return; }
+  const L = r[3], j = clamp(L.indexOf(S[k]) + d, 0, L.length - 1); S[k] = L[j]; applySettings(); }
+let midiAcc = null;
+function applySettings() {
+  const T = THEMES[S.color] || {}; Object.assign(C, C0, T); for (const k in atlas) delete atlas[k];
+  dev.dataset.leds = String(SETDEF[1][3].indexOf(S.leds));
+  if (eqNode) { if (S.eq === 'LOWCUT') { eqNode.type = 'highpass'; eqNode.frequency.value = 150; eqNode.Q.value = 0.7; } else if (S.eq === 'BASS+') { eqNode.type = 'lowshelf'; eqNode.frequency.value = 140; eqNode.gain.value = 6; } else { eqNode.type = 'allpass'; eqNode.frequency.value = 1000; } }
+  post({ t: 'tune', cents: parseInt(S.tune) || 0 });
+  if (S.midiin !== 'OFF' && !midiAcc && navigator.requestMIDIAccess) navigator.requestMIDIAccess().then(a => { midiAcc = a; const hook = () => a.inputs.forEach(inp => inp.onmidimessage = midiIn); hook(); a.onstatechange = hook; }).catch(() => flash('MIDI NOT AVAILABLE'));
+}
+function midiIn(ev) { const [s0, n, v] = ev.data, ty = s0 & 0xF0, ch = (s0 & 15) + 1; if (S.midiin === 'OFF' || (S.midiin !== 'OMNI' && S.midiin !== 'CH' + ch)) return;
+  wake(); if (ty === 0x90 && v > 0) { const rec = st.rec; if (S.midirec === 'OFF') st.rec = false; noteDown(n, 'midi' + n); st.rec = rec; } else if (ty === 0x80 || (ty === 0x90 && v === 0)) noteUp('midi' + n); }
+let lastInput = performance.now();
+function wake() { lastInput = performance.now(); }
+const asleep = () => { const m = { NEVER: 0, '5 MIN': 5, '15 MIN': 15, '30 MIN': 30, '60 MIN': 60 }[S.sleep]; return m && performance.now() - lastInput > m * 60000; };
+const holdMs = () => parseInt(S.hold) || 450;
+function homeTap() { if (st.ask) return askAnswer(false); if (st.menu) return closeMenu(); if (st.fxp) return fxpCancel();
+  if (st.page === 'file' && !st.imp && !st.nw) { if (owArmed()) { st.owK = -1; flash('OVERWRITE CANCELLED'); } else fileCancel(); return; } const onPat = st.page === 'pat' && !st.nw && !st.imp;
+  if (st.imp) cancelImport(); st.fsave = false; st.pw = false; st.nw = false;
+  if (onPat && st.blk) { st.blk = null; return flash('BLOCK OFF'); }
+  /* HOME short: 3 channels → 9 channels (notes) → the waveform of one channel → of nine → 3 channels */
+  if (onPat) { if (st.scope === 2) { st.scope = 0; flash('3CH TRACK'); } else if (st.scope) { st.scope = 2; flash('SCOPE 9CH'); } else if (st.compact) { st.compact = false; st.scope = 1; flash('SCOPE 1CH'); } else { st.compact = true; st.field = 0; flash('9CH NOTES'); } } else st.page = 'pat'; }
+const HINTS = {
+  menu: '<b>설정 (HOME 길게)</b> ALGORITHM 탭 · PRESETS/SELECT 항목 · 노브1–4 또는 OCT± 값 바꾸기 · HOME 짧게 닫기(자동 저장) · 키보드 F9 열고 닫기, ↑↓ 항목, ←→ 값, Tab 탭',
+  glo: '<b>GLOBAL</b> (OPL2로 바꿀 때 못 쓰는 내용이 있으면 경고: OCT+ 진행, OCT− OPL3 유지) SELECT 또는 GLO로 TEMPO/CHIP 페이지 · TEMPO: 노브1 BPM · 노브2 SPEED · 노브3 패턴 줄 수(줄이면 HOME 누른 채) · 노브4 전체 볼륨 · CHIP: 노브1 OPL3/OPL2 · 노브2 AM 깊이 · 노브3 VIB 깊이 · 노브4 FX SHAPE(4xy 비브라토·Mxy 트레몰로 이펙트의 흔들림 모양) · HOME+GLO = 파일 화면',
+  fxp: '<b>이펙트 목록</b> SELECT/PRESETS/ALGORITHM 한 칸씩 · 노브1 또는 HOME+돌리기 묶음 이동 · SEL·FX·SAVE 고르기 · 그 밖의 버튼 취소 · 키보드 ↑↓, PageUp/Down, Enter, Esc',
+  pat: '<b>패턴</b> SELECT 위아래 · PRESETS 음색 · 노브1 패턴 · 노브2 채널 · <b>ALGORITHM 좌우 이동(HOME+ALGORITHM 채널 단위) · 노브3 커서 FX 칸의 명령어(HOME+노브3 묶음 건너뛰기) · 노브4 커서 FX 칸의 값 · FX 길게 누르기 = 이펙트 목록</b> · FX 버튼 FX1/FX2/노트 이동 · EDIT 커서 칸 지우기 · SEL 다음 채널 묶음(HOME+SEL 이전) · <b>HOME 짧게 = 3채널 → 9채널(노트만) → 파형 1채널 → 파형 9채널</b>(파형: 노브2 채널, SEL 묶음, PRESETS 악기, 건반 연주) · <b>블록: HOME+노브1 줄, HOME+노브2 채널로 선택 → 노브3 반음 이조(HOME+노브3 옥타브), PRESETS 악기, EDIT 지우기, HOME+OCT− 복사, HOME+OCT+ 붙여넣기, HOME 짧게 해제</b> · 퍼커션 모드면 SEL 마지막 묶음이 드럼(BD SD TT CY HH)',
+  ins: '<b>악기</b> SELECT/ENV 페이지 넘기기 · SEL OP1/OP2 · PRESETS 프리셋 창 · SAVE 프리셋으로 저장 · 1쪽 노브3 고르기, HOME+노브3 켜기/끄기 · ALGORITHM 연결(FM/ADD) · 건반으로 바로 들어보기',
+  pw: '<b>프리셋 창</b> PRESETS 스크롤 · 노브1 카테고리 · SEL 불러오기 · ENV 취소 · EDIT 두 번 사용자 프리셋 삭제 · 건반 미리듣기',
+  mac: '<b>매크로 표</b> ARP 아르페지오 → 비브라토 → FM 레지스터 매크로 순환 · <b>REG(레지스터 매크로)</b>: PRESETS 악기 · 노브1 칸 · 노브2 항목(29개) · HOME+노브2 항목 끄기/켜기 · 노브3 값 · 노브4 지속 틱 · HOME+노브4 키오프 위치 · SELECT 길이 · ALGORITHM 루프 시작 · HOME+ALGORITHM 루프 길이 · EDIT 칸 삭제 · HOME+EDIT 매크로 지우기 · 노브1 표 번호 · 노브2 칸 · 노브3 값 · 노브4 속도(HOME+노브4 비브라토 딜레이) · SELECT 길이 · ALGORITHM 루프 · PRESETS 미리듣기 악기 · HOME+PRESETS 모양 템플릿 · EDIT 칸 0, HOME+EDIT 표 비우기',
+  seq: '<b>곡 순서</b> SELECT 위치 · 노브1 위치 · 노브2 패턴 번호 · 노브3 곡 길이 · 노브4 위치 4칸씩 · OCT+ 위치 끼워넣기 · OCT−(또는 EDIT) 위치 지우기 · HOME+PLAY 패턴 반복 재생',
+  file: '<b>파일</b> 노브1/SELECT 슬롯 · SAVE 저장 (빈 슬롯은 이름 입력, 같은 곡이 그대로면 바로 저장, 바뀌었거나 다른 곡이면 덮어쓰기 경고 후 SAVE 한 번 더) · SEL 불러오기 · EDIT 이름 바꾸기 · OCT− 두 번 삭제 · FX 내보내기 · ENV USB 가져오기 · <b>그 밖의 버튼은 취소</b>',
+  nw: '<b>이름 입력</b> 흰 건반 한 번 더 누르면 다음 글자 · 노브1/SELECT 커서 · 노브2 글자 넘기기 · EDIT 지우기 · SAVE 확정 · ENV 취소 · 컴퓨터 키보드로도 입력'
+};
+let lastHint = '';
+function hintPanel() { const k = st.menu ? 'menu' : st.fxp ? 'fxp' : st.nw ? 'nw' : st.page === 'ins' && st.pw ? 'pw' : st.page; if (k === lastHint) return; lastHint = k; $('#hint').innerHTML = HINTS[k] || ''; }
+function cancelImport() { st.imp = ''; st.impData = null; updUsb(); flash('IMPORT CANCELLED'); }
+async function receiveFile(file) {
+  if (st.imp !== 'wait') return '기기가 대기 상태가 아닙니다. FILE 화면에서 ENV(IMPORT)를 먼저 누르세요.';
+  let buf = new Uint8Array(await file.arrayBuffer()), name = file.name;
+  if (buf[0] === 0x50 && buf[1] === 0x4B) { const z = await unzipFind(buf, /\.(a2m|rad)$/i); if (!z) return 'zip 안에 .A2M / .RAD 파일이 없습니다.'; buf = z.data; name = z.name; }
+  try { const r = isRAD(buf) ? importRAD(buf) : importA2M(buf); st.imp = 'got'; st.impData = Object.assign(r, { file: name }); st.fsel = Math.max(0, slots.findIndex(x => !x)); updUsb(); flash('FILE RECEIVED'); return '기기에 전송했습니다: ' + name; }
+  catch (e) { flash('IMPORT FAILED'); return '불러오지 못했습니다: ' + e.message; } }
+function storeImport() { const k = st.fsel;
+  if (slots[k] && performance.now() - ovArm > 2500) { ovArm = performance.now(); flash('SAVE AGAIN: OVERWRITE ' + (k + 1)); return; }
+  ovArm = -1e9; const sg = st.impData.song;
+  try { writeSlot(k, sg); refreshSlots(); useSong(sg, k); st.imp = ''; st.impData = null; updUsb(); flash('IMPORTED TO SLOT ' + (k + 1)); } catch (e) { flash('IMPORT FAILED (STORAGE)'); } }
+async function unzipFind(u, re) { const dv = new DataView(u.buffer, u.byteOffset, u.byteLength); let p = 0;
+  while (p + 30 <= u.length && dv.getUint32(p, true) === 0x04034b50) { const meth = dv.getUint16(p + 8, true), csz = dv.getUint32(p + 18, true), nl = dv.getUint16(p + 26, true), xl = dv.getUint16(p + 28, true);
+    const nm = new TextDecoder().decode(u.subarray(p + 30, p + 30 + nl)), st0 = p + 30 + nl + xl, raw = u.subarray(st0, st0 + csz);
+    if (re.test(nm)) { if (meth === 0) return { name: nm, data: raw };
+      if (meth === 8 && window.DecompressionStream) { const ds = new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))); return { name: nm, data: new Uint8Array(await ds.arrayBuffer()) }; } return null; }
+    p = st0 + csz; } return null; }
+async function exportSong() {
+  const nm = (song.name || 'SONG').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 8) || 'SONG';
+  let a2m; try { a2m = exportA2M(song); } catch (e) { flash('EXPORT FAILED'); return; }
+  const readme = 'FM-1 OPL3 TRACKER export\r\n\r\n' + nm + '.A2M - Adlib Tracker II module (format v11, 18 tracks, OPL3).\r\nThe FM-1 tracker reads it back without loss: exact fine tune, vibrato depths and\r\nnegative arpeggio steps are kept in the module\'s reserved area.\r\n\r\nIn Adlib Tracker II itself these are approximate: fine tune and vibrato table depth\r\n(AT2 counts them in frequency steps), and arpeggio steps below 0 play as 0.\r\nThe volume column is AT2 effect "set volume" (C) in the second effect column.\r\n';
+  const zip = zipFiles([{ name: nm + '.A2M', data: a2m }, { name: 'README.TXT', data: readme }]);
+  let dl = null; try { dl = window.claude && await window.claude.use('downloads'); } catch (e) {}
+  if (!dl) { flash('DOWNLOAD NOT AVAILABLE HERE'); return; }
+  try { await dl.save({ filename: nm + '.zip', data: zip }); flash('EXPORTED ' + nm + '.ZIP'); }
+  catch (e) { flash(e && e.code === 'declined' ? 'EXPORT CANCELLED' : 'EXPORT FAILED'); } }
+function doUndo() { if (!undo.length) { flash('NO UNDO'); return; } song = JSON.parse(undo.pop()); changed(); flash('UNDO'); }
+const dev = $('.dev');
+dev.addEventListener('pointerdown', e => { const b = e.target.closest('.btn'); if (!b) return; e.preventDefault(); startAudio(); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) {}
+  btnDown(b.dataset.n); });
+function btnDown(n) {
+  if (n === 'PLAY') { if (st.about === 1) st.about = 0; toggle(st.shift); if (st.shift) st.used = true; return; }   /* (PLAY plays or stops on every screen, menus and INFO included) */
+  if (aboutInput('btn', n)) return;
+  if (n === 'HOME') { st.shift = true; st.used = false; clearTimeout(homeTimer); homeTimer = setTimeout(() => { if (st.shift && !st.used) { st.used = true; st.menu ? closeMenu() : openMenu(); } }, holdMs() + 250); }
+  else if (n === 'SAVE') { saveTimer = setTimeout(() => { saveTimer = null; doUndo(); }, 550); if (st.shift) st.used = true; }
+  else if (n === 'FX' && !st.fxp && !st.menu && !st.nw && (st.page === 'pat')) { fxTimer = setTimeout(() => { fxTimer = null; openFxPicker(); }, holdMs()); }
+  else press(n); }
+dev.addEventListener('pointerup', e => { const b = e.target.closest('.btn'); if (!b) return; b.classList.remove('on'); btnUp(b.dataset.n); });
+function btnUp(n) {
+  if (st.aboutUp === n) { st.aboutUp = null; return; }
+  if (n === 'HOME') { clearTimeout(homeTimer); st.shift = false; if (!st.used) homeTap(); }
+  if (n === 'FX' && fxTimer) { clearTimeout(fxTimer); fxTimer = null; press('FX'); }
+  if (n === 'SAVE' && saveTimer) { clearTimeout(saveTimer); saveTimer = null; if (st.shift && !st.nw) copyJSON(); else if (st.nw) commitName(); else if (st.page === 'ins' && !st.pw) openName(); else save(); } }
+dev.addEventListener('pointercancel', e => { const b = e.target.closest('.btn'); if (!b) return; b.classList.remove('on'); if (b.dataset.n === 'HOME') st.shift = false; });
+dev.addEventListener('keydown', e => { const b = e.target.closest('.btn'); if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); const n = b.dataset.n; if (n === 'HOME') homeTap(); else if (n === 'SAVE') (st.nw ? commitName() : st.page === 'ins' && !st.pw ? openName() : save()); else press(n); } });
+
+/* knobs */
+document.querySelectorAll('.knob').forEach(k => {
+  const i = isNaN(+k.dataset.k) ? k.dataset.k : +k.dataset.k, isPot = i === 'mst'; let y0 = 0, acc = 0, ang = isPot ? master * 270 - 135 : 0;
+  if (isPot) k.firstChild.style.transform = `rotate(${ang}deg)`;
+  let lastT = 0; const turn = d => { const now = performance.now(), fast = S.accel === 'ON' && now - lastT < 45 && !isPot; lastT = now; knob(i, fast ? d * 4 : d); ang = isPot ? master * 270 - 135 : ang + d * 12; k.firstChild.style.transformOrigin = `50% ${k.clientHeight / 2 - parseFloat(getComputedStyle(k.firstChild).top)}px`; k.firstChild.style.transform = `rotate(${ang}deg)`; };
+  k.addEventListener('pointerdown', e => { e.preventDefault(); startAudio(); try { k.setPointerCapture(e.pointerId); } catch (_) {}; y0 = e.clientY; acc = 0; });
+  k.addEventListener('pointermove', e => { if (!k.hasPointerCapture(e.pointerId)) return; acc += y0 - e.clientY; y0 = e.clientY; const stp = isPot ? 3 : 9; while (Math.abs(acc) >= stp) { const d = Math.sign(acc); acc -= d * stp; turn(d); } });
+  k.addEventListener('wheel', e => { e.preventDefault(); turn(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+  k.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); turn(1); } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); turn(-1); } });
+});
+
+/* keyboard: 27 keys, F3–G5 */
+const kb = $('#kb'), WH = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26], BL = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
+const NAMES = ['F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E'];
+const base = () => 53 + (st.oct - 4) * 12;
+kb.innerHTML = WH.map(k => `<div class="k" data-o="${k}"><em></em>${NAMES[k % 12] === 'C' ? '<span></span>' : ''}</div>`).join('') + BL.map(k => `<div class="k bk" data-o="${k}"><em></em></div>`).join('');
+const WCH = ['ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQR', 'STU', 'VWX', 'YZ ', '012', '345', '678', '9-.', '#+/', '!?&', '()*'], BCH = ['<>=', ":'\"", '@$%', '^~_', '[]|', ',;\\'];
+const KCH = {}; WH.forEach((o, i) => KCH[o] = WCH[i] || ''); BL.forEach((o, i) => KCH[o] = BCH[i] || '');
+function placeBlack() { const w = kb.clientWidth, ww = (w - 3 * (WH.length - 1)) / WH.length;
+  kb.querySelectorAll('.bk').forEach(el => { const o = +el.dataset.o, left = WH.filter(x => x < o).length; el.style.width = ww * .62 + 'px'; el.style.left = (left * (ww + 3) - ww * .31 - 1.5) + 'px'; }); }
+new ResizeObserver(placeBlack).observe(kb);
+kb.addEventListener('pointerdown', e => { const k = e.target.closest('.k'); if (!k) return; e.preventDefault(); try { k.setPointerCapture(e.pointerId); } catch (_) {};
+  if (st.shift) { st.used = true; noteOffEntry(); return; } noteDown(base() + +k.dataset.o, 'p' + e.pointerId); });
+['pointerup', 'pointercancel'].forEach(t => kb.addEventListener(t, e => noteUp('p' + e.pointerId)));
+function lightKey(n, on) { const o = n - base(); const el = kb.querySelector(`[data-o="${o}"]`); if (el) el.classList.toggle('down', on); }
+
+/* computer keyboard */
+const NK = { KeyZ: 0, KeyS: 1, KeyX: 2, KeyD: 3, KeyC: 4, KeyV: 5, KeyG: 6, KeyB: 7, KeyH: 8, KeyN: 9, KeyJ: 10, KeyM: 11, Comma: 12, KeyL: 13, Period: 14,
+  KeyQ: 12, Digit2: 13, KeyW: 14, Digit3: 15, KeyE: 16, KeyR: 17, Digit5: 18, KeyT: 19, Digit6: 20, KeyY: 21, Digit7: 22, KeyU: 23, KeyI: 24, Digit9: 25, KeyO: 26, Digit0: 27, KeyP: 28 };
+const HX = { Digit0: 0, Digit1: 1, Digit2: 2, Digit3: 3, Digit4: 4, Digit5: 5, Digit6: 6, Digit7: 7, Digit8: 8, Digit9: 9, KeyA: 10, KeyB: 11, KeyC: 12, KeyD: 13, KeyE: 14, KeyF: 15 };
+document.addEventListener('keydown', e => {
+  if (e.target.closest('textarea,input,.ui,summary')) return;
+  keyShift = e.shiftKey; const k = e.code, mod = e.ctrlKey || e.metaKey;
+  wake();
+  if (k === 'Space' && !mod && !st.nw) { e.preventDefault(); if (st.about === 1) st.about = 0; toggle(e.shiftKey); return; }
+  if (st.about && !mod) { e.preventDefault(); if (st.about === 1) st.about = 0; else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 'PageDown') st.ap = Math.min(st.ap + 1, aboutLast()); else if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'PageUp') st.ap = Math.max(st.ap - 1, 0); else st.about = 0; return; }
+  if (st.ask) { e.preventDefault(); if (k === 'Enter') askAnswer(true); else if (k === 'Escape') askAnswer(false); return; }
+  if (k === 'F9') { e.preventDefault(); st.menu ? closeMenu() : openMenu(); return; }
+  if (st.menu) { e.preventDefault(); if (k === 'ArrowUp' || k === 'ArrowDown') menuKnob('pre', k === 'ArrowUp' ? -1 : 1); else if (k === 'ArrowLeft' || k === 'ArrowRight') menuValue(k === 'ArrowLeft' ? -1 : 1);
+    else if (k === 'Tab' || k === 'PageDown' || k === 'PageUp') menuKnob('alg', k === 'PageUp' || e.shiftKey ? -1 : 1); else if (k === 'Escape' || k === 'Enter') closeMenu(); return; }
+  if (st.fxp) { e.preventDefault(); if (k === 'ArrowUp' || k === 'ArrowDown') fxpMove(k === 'ArrowUp' ? -1 : 1, e.shiftKey); else if (k === 'PageUp' || k === 'PageDown') fxpMove(k === 'PageUp' ? -1 : 1, true);
+    else if (k === 'Enter' || k === 'F6') fxpPick(); else if (k === 'Escape') fxpCancel(); return; }
+  if (k === 'F6') { e.preventDefault(); openFxPicker(); return; }
+  if (mod) { if (k === 'KeyZ') { e.preventDefault(); doUndo(); } else if (k === 'KeyS') { e.preventDefault(); save(); }
+    else if (k === 'KeyC' && st.page === 'pat') { e.preventDefault(); clip = JSON.stringify(pat(curPat())); flash('COPIED PAT'); }
+    else if (k === 'KeyV' && st.page === 'pat' && clip) { e.preventDefault(); snap(); song.patterns[curPat()] = JSON.parse(clip); changed(); flash('PASTED'); } return; }
+  if (st.nw) { e.preventDefault();
+    if (k === 'Enter') commitName(); else if (k === 'Escape') { st.nw = false; flash('CANCELLED'); } else if (k === 'Backspace') nameBack(false);
+    else if (k === 'Delete') { st.nm = st.nm.slice(0, st.nc) + st.nm.slice(st.nc + 1); }
+    else if (k === 'ArrowLeft') st.nc = Math.max(0, st.nc - 1); else if (k === 'ArrowRight') st.nc = Math.min(st.nm.length, st.nc + 1);
+    else { let ch = e.key.length === 1 && e.key.charCodeAt(0) < 127 ? e.key.toUpperCase() : k.startsWith('Key') ? k.slice(3) : k.startsWith('Digit') ? k.slice(5) : k === 'Space' ? ' ' : k === 'Minus' ? '-' : k === 'Period' ? '.' : '';
+      if (ch && NCH.includes(ch)) nameIns(ch); }
+    st.tk = -1; return; }
+  let used = true; startAudio();
+  if (k === 'Space') toggle(e.shiftKey);
+  else if (st.imp && k === 'Escape') cancelImport();
+  else if (st.pw && st.page === 'ins' && k === 'Escape') { st.pw = false; flash('CANCELLED'); }
+  else if (st.pw && st.page === 'ins' && k === 'Enter') loadPreset();
+  else if (st.pw && st.page === 'ins' && (k === 'ArrowUp' || k === 'ArrowDown')) knob('pre', k === 'ArrowUp' ? -1 : 1);
+  else if (k === 'Backquote' || k === 'Escape') st.rec = !st.rec;
+  else if (k === 'F1') homeTap(); else if (k === 'F2') st.page = 'ins'; else if (k === 'F3') st.page = 'seq'; else if (k === 'F4') { st.pw = false; press('ARP'); } else if (k === 'F5') press('GLO'); else if (k === 'F7') { const s0 = st.shift; st.shift = true; press('GLO'); st.shift = s0; }
+  else if (k === 'ArrowUp') st.page === 'pat' ? move(-1) : st.page === 'ins' ? knob('sel', -1) : knob(0, -1);
+  else if (k === 'ArrowDown') st.page === 'pat' ? move(1) : st.page === 'ins' ? knob('sel', 1) : knob(0, 1);
+  else if (st.page === 'mac' && k.startsWith('Arrow')) knob(k === 'ArrowLeft' || k === 'ArrowRight' ? 1 : 2, k === 'ArrowLeft' || k === 'ArrowDown' ? -1 : 1);
+  else if (k === 'ArrowLeft') st.page === 'pat' ? moveField(-1) : st.page === 'ins' ? press('SEL') : knob(0, -1);
+  else if (k === 'ArrowRight') st.page === 'pat' ? moveField(1) : st.page === 'ins' ? press('SEL') : knob(0, 1);
+  else if (k === 'PageUp') move(-16); else if (k === 'PageDown') move(16);
+  else if (k === 'Tab') stepCh(e.shiftKey ? -1 : 1);
+  else if (k === 'Delete') { if (st.page === 'pat') deleteNote(e.shiftKey); }
+  else if (k === 'Backspace') { if (st.page === 'pat') clearField(); }
+  else if (k === 'Minus') { st.oct = clamp(st.oct - 1, 0, 7); flash('OCTAVE ' + st.oct); }
+  else if (k === 'Equal') { st.oct = clamp(st.oct + 1, 0, 7); flash('OCTAVE ' + st.oct); }
+  else if (k === 'BracketLeft') st.page === 'pat' ? presetTurn(-1, e.shiftKey) : knob('pre', -1);
+  else if (k === 'BracketRight') st.page === 'pat' ? presetTurn(1, e.shiftKey) : knob('pre', 1);
+  else if (st.page === 'pat' && st.field > 0 && k in HX) typeHex(HX[k]);
+  else if (k === 'Digit1' && st.page === 'pat') noteOffEntry();
+  else if (k in NK) { if (!e.repeat) noteDown((st.oct + 1) * 12 + NK[k], k); }
+  else used = false;
+  if (used) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keyShift = e.shiftKey; if (e.code in NK) noteUp(e.code); });
+window.addEventListener('blur', () => { [...held.keys()].forEach(noteUp); st.shift = false; keyShift = false; });
+cv.addEventListener('pointerdown', () => { startAudio(); cv.focus(); });
+
+/* side panel */
+$('#bPlay').onclick = () => toggle(false);
+$('#bDemo').onclick = () => setSong(demoSong(), 'DEMO');
+$('#bNew').onclick = () => setSong(newSong(), 'NEW SONG');
+async function copyJSON() { try { await navigator.clipboard.writeText(JSON.stringify(song)); flash('JSON COPIED'); } catch (e) { $('#ta').value = JSON.stringify(song); $('details').open = true; flash('COPY BELOW'); } }
+$('#bCopy').onclick = copyJSON;
+function updUsb() { const el = $('#usbState'); if (el) el.textContent = '기기 상태: ' + (st.imp === 'wait' ? '파일을 기다리는 중' : st.imp === 'got' ? '파일 받음, 기기에서 슬롯을 고르세요' : '대기 아님 (기기에서 GLO → ENV)'); }
+$('#usbFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; $('#usbMsg').textContent = await receiveFile(f); });
+updUsb();
+$('#bLoad').onclick = () => { try { const s = JSON.parse($('#ta').value); if (!valid(s)) throw 0; setSong(s, 'LOADED'); } catch (e) { flash('BAD JSON'); } };
+
+/* screen */
+const SC = 3;
+const GL = Object.keys(GLYPH_SRC), GI = {}; GL.forEach((c, i) => GI[c] = i);
+const atlas = {};
+function atl(col) { if (atlas[col]) return atlas[col]; const a = document.createElement('canvas'); a.width = GL.length * 6 * SC; a.height = 7 * SC; const x = a.getContext('2d'); x.fillStyle = col;
+  GL.forEach((c, i) => GLYPH_SRC[c].split(' ').forEach((row, r) => { for (let b = 0; b < 5; b++) if (row[b] === '#') x.fillRect((i * 6 + b) * SC, r * SC, SC, SC); })); return atlas[col] = a; }
+// size >= 12 → double size (12px advance, 14px tall); otherwise 1x (6px advance, 7px tall)
+function txt(s, x, y, col, size) { const k = size >= 28 ? 4 : size >= 12 ? 2 : 1, a = atl(col); s = String(s).toUpperCase(); x = Math.round(x); y = Math.round(y);
+  for (let i = 0; i < s.length; i++) { if (s[i] === ' ') continue; let j = GI[s[i]]; if (j === undefined) j = GI['?']; g.drawImage(a, j * 6 * SC, 0, 5 * SC, 7 * SC, x + i * 6 * k, y, 5 * k, 7 * k); } }
+const tw = (s, k = 1) => String(s).length ? String(s).length * 6 * k - k : 0;
+const cut = (s, w) => { s = String(s); const n = Math.floor((w + 1) / 6); return s.length > n ? s.slice(0, n) : s; };
+function txtFit(s, x, y, col, w) { if (tw(s, 2) <= w) txt(s, x, y, col, 12); else txt(cut(s, w), x, y + 4, col, 8); }
+function ctxt(s, cx, y, col, size) { const k = size >= 28 ? 4 : size >= 12 ? 2 : 1; txt(s, cx - Math.floor(tw(s, k) / 2), y, col, size); }
+function rect(x, y, w, h, col) { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+// crisp 1px line (Bresenham) so graphics match the bitmap text
+function pline(x0, y0, x1, y1, col) { x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1); g.fillStyle = col;
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy;
+  for (;;) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+function plot(fn, x, w, mid, amp, col) { let py = null; for (let i = 0; i <= w; i++) { const y = Math.round(mid - fn(i / w) * amp); if (py !== null) pline(x + i - 1, py, x + i, y, col); py = y; } }
+function frameRect(x, y, w, h, col) { rect(x, y, w, 1, col); rect(x, y + h - 1, w, 1, col); rect(x, y, 1, h, col); rect(x + w - 1, y, 1, h, col); }
+// layout: cards 0–25 · status 26–35 · body from 37
+// card values are always double size: up to 4 characters, or a number with a small unit (614 MS)
+function cardVal(v, x, y) { v = String(v).toUpperCase();
+  const m = v.match(/^([-+×]?[\d.∞]+)\s*(MS|S|DB|K)$/);   /* (no C: an instrument's 0C is hex, not cents) */ if (m && tw(m[1], 2) + 2 + tw(m[2]) <= 54) { txt(m[1], x, y, C.white, 12); txt(m[2], x + tw(m[1], 2) + 2, y + 7, C.grey); return; }
+  txt(v.slice(0, 4), x, y, C.white, 12); }
+function cards(L, V) { for (let i = 0; i < 4; i++) { const x = i * 60; rect(x, 0, 59, 25, C.bar); txt(cut(L[i], 54), x + 3, 1, C.cyan); cardVal(V[i], x + 3, 10); } }
+function status(l, r, rc) { rect(0, 26, 240, 10, C.panel); const rw = r ? tw(r) + 6 : 0; txt(cut(l, 235 - rw), 2, 28, C.grey); if (r) txt(r, 238 - tw(r), 28, rc || C.grey); }
+function bar(y, l, r, lc, rcol) { rect(0, y, 240, 10, C.bar); if (l) txt(cut(l, 236 - (r ? tw(r) + 6 : 0)), 3, y + 2, lc || C.grey); if (r) txt(r, 237 - tw(r), y + 2, rcol || C.dim); }
+function foot(s, col) { rect(0, 229, 240, 11, C.panel); txt(cut(s, 236), 3, 231, col || C.grey); }
+/* the waveform screen (HOME short, 3rd and 4th view): each track's OPL channel as DBOPL played it, 22.05 kHz (the
+ * engine's 'scope' answer; tests/t44: the same made-up waves as firmware/ui/test/ui_host) */
+let scopeD = null, scopeWas = false;
+const SCN = 448;
+function fakeScope(t) { const p = 20 + t * 7, a = 2000 + t * 400, o = []; for (let i = 0; i < SCN; i++) o.push(Math.floor(((i + t * 13) % p) * 2 * a / p) - a); return o; }
+/* track ch's latest samples: an array, null = no OPL channel (OFF), undefined = nothing yet */
+function scopeOf(ch) { if (window.__ui) return fakeScope(ch); if (!scopeD) return undefined; const k = scopeD.tr.indexOf(ch); return k < 0 ? undefined : scopeD.d[k]; }
+const scopeTracks = () => st.scope === 1 ? [st.ch] : curGroup();
+/* w pixels from a rising zero crossing, every step-th sample; y the centre line, half the most up or down */
+function scopeWave(D, x, y, w, half, step, col) {
+  if (!D) { rect(x, y, w, 1, C.dim); return; }
+  const span = w * step; let t0 = 0, py = 0, pk = 2048;   /* (scaled to the loudest sample, 2048 at least: quiet stays small) */
+  for (let i = 0; i < D.length; i++) pk = Math.max(pk, Math.abs(D[i]));
+  for (let i = 1; i + span <= D.length; i++) if (D[i - 1] < 0 && D[i] >= 0) { t0 = i; break; }
+  for (let k = 0; k < w; k++) { const yy = y - clamp(Math.trunc(D[t0 + k * step] * half / pk), -half, half); if (!k) py = yy;
+    const a = Math.min(py, yy); rect(x + k, a, 1, Math.max(py, yy) - a + 1, col); py = yy; }
+}
+function drawScope() {
+  const one = st.scope === 1, ch = st.ch, ins = curInsOf(ch), I = ins ? song.inst[ins - 1] : null, lbl = c => isDrum(c) ? DRN[c - 15] : String(c + 1).padStart(2, '0');
+  cards(['SCOPE', isDrum(ch) ? 'DRUM' : 'CHANNEL', 'INS', 'PATTERN'], [one ? '1CH' : '9CH', lbl(ch), ins ? hex(ins, 2) : '--', hex(curPat(), 2)]);
+  status(`R${hex(st.row, 2)} O${st.ord}/${song.order.length - 1} ${I ? I.name.slice(0, 10) : ''}`, st.rec ? '● REC' : st.playing ? '► PLAY' : song.bpm + '/' + song.speed, st.rec ? C.red : st.playing ? C.green : C.dim);
+  if (one) { const D = scopeOf(ch);
+    rect(0, 132, 240, 1, C.line); for (let x = 0; x < 240; x += 30) rect(x, 129, 1, 7, C.line);
+    if (D === null) ctxt('OFF', 120, 128, C.dim); else scopeWave(D, 0, 132, 240, 88, 1, mute[ch] ? C.dim : C.green);
+    if (mute[ch]) txt('MUTE', 3, 40, C.red);
+    foot('K2 CHANNEL · SEL GROUP · HOME VIEW'); return; }
+  curGroup().forEach((c, j) => { const x = (j % 3) * 80, y = 37 + Math.floor(j / 3) * 64, D = scopeOf(c);
+    frameRect(x, y, 79, 63, c === st.ch ? C.cyan : C.line);
+    txt(lbl(c), x + 3, y + 3, mute[c] ? C.red : c === st.ch ? C.cyan : C.grey);
+    rect(x + 1, y + 37, 77, 1, C.line);
+    if (D === null) ctxt('OFF', x + 40, y + 33, C.dim); else scopeWave(D, x + 1, y + 37, 77, 24, 2, mute[c] ? C.dim : c === st.ch ? C.yellow : C.green); });
+}
+const FN = ['NOTE', 'INS', 'VOL', 'FX'];
+const PROWS = 20, PRY = 46, PRH = 9;
+function drawPat() {
+  if (st.fxp) return drawFxPicker();
+  if (st.scope) return drawScope();
+  const c = cell(), ins = song.inst[st.inst - 1];
+  cards(['PATTERN', isDrum(st.ch) ? 'DRUM' : 'CHANNEL', 'FX1 ' + fxShort(c[2], c[3]), 'FX2 ' + fxShort(c[4], c[5])], [hex(curPat(), 2), isDrum(st.ch) ? DRN[st.ch - 15] : String(st.ch + 1).padStart(2, '0'), fxStr(c[2], c[3]), fxStr(c[4], c[5])]);
+  if (st.field >= 2 && !st.compact) frameRect((st.field === 2 ? 2 : 3) * 60, 0, 59, 25, C.yellow);
+  status(`R${hex(st.row, 2)} O${st.ord}/${song.order.length - 1} I${hex(st.inst, 2)} ${ins ? ins.name.slice(0, 7) : ''}`, st.blk ? 'BLOCK ' + (blockRect().r1 - blockRect().r0 + 1) + '×' + blockRect().ch.length : st.rec ? '● REC' : st.playing ? '► PLAY' : st.compact ? '9CH' : song.bpm + '/' + song.speed, st.blk ? C.yellow : st.rec ? C.red : st.playing ? C.green : C.dim);
+  const G = curGroup(), dv = isDrum(G[0]), narrow = st.compact && !dv, cw = dv ? 44 : narrow ? 25 : 74, x0 = narrow ? 14 : 15;
+  rect(0, 36, 240, 10, C.bar);
+  G.forEach((ch, j) => { const x = x0 + j * cw, lo = isLo4(ch);
+    if (ch === st.ch) rect(x - 1, 36, cw - 1, 10, C.chsel);
+    txt(dv ? DRN[ch - 15] : String(ch + 1).padStart(2, '0'), x + (narrow ? 6 : 0), 38, mute[ch] ? C.red : ch === st.ch ? C.cyan : lo ? C.dim : C.grey);
+    if (!narrow) { const s = mute[ch] ? null : song.inst[curInsOf(ch) - 1], w = cw - 18;
+      txt(mute[ch] ? 'MUTE' : lo ? '◄4OP' : pairOf(ch) >= 0 ? cut('4OP ' + (s ? s.name : ''), w) : s ? cut(s.name, w) : '', x + 16, 38, mute[ch] ? C.red : lo || pairOf(ch) >= 0 ? C.mag : ch === st.ch ? C.white : C.dim); } });
+  const p = pat(curPat()), showPlay = st.playing && st.pord === st.ord, half = Math.floor(PROWS / 2);
+  const offs = [0, 20, 34, 54];
+  for (let i = 0; i < PROWS; i++) { const r = st.row - half + i, y = PRY + i * PRH; if (r < 0 || r >= song.rows) continue;
+    const bg = showPlay && r === st.prow ? C.play : r === st.row ? C.cur : r % 4 === 0 ? C.beat : null; if (bg) rect(0, y, 240, PRH, bg);
+    txt(S.rownum === 'DEC' ? String(r % 100).padStart(2, '0') : hex(r, 2), 1, y + 1, r % 16 === 0 ? C.yellow : C.dim);
+    G.forEach((ch, j) => { const x = x0 + j * cw, cl = p[r][ch], lo = isLo4(ch);
+      if (inBlock(r, ch)) rect(x - 1, y, cw - 1, PRH, C.chsel);
+      rect(x - 2, y, 1, PRH, C.line);
+      const parts = [noteName(cl[0]), cl[1] ? hex(cl[1], 2) : '--', dv ? (cl[2] < 0 ? '·' : FXD[cl[2]]) : fxStr(cl[2], cl[3]), dv ? (cl[4] < 0 ? '·' : FXD[cl[4]]) : fxStr(cl[4], cl[5])];
+      const cols = [cl[0] === -1 ? C.dim : cl[0] === -2 ? C.red : C.white, cl[1] ? (lo ? C.mag : C.cyan) : C.dim, fxCol(cl[2], cl[3]), fxCol(cl[4], cl[5])];
+      for (let f = 0; f < (narrow ? 1 : 4); f++) { const fx = x + (narrow ? 3 : dv ? [0, 19, 32, 38][f] : offs[f]);
+        if (r === st.row && ch === st.ch && f === st.field) { rect(fx - 1, y, tw(parts[f]) + 2, PRH, C.cyan); txt(parts[f], fx, y + 1, C.bg); }
+        else txt(parts[f], fx, y + 1, mute[ch] ? '#7777AA' : cols[f]); } }); }
+  const B = blockRect(); if (B) { const js = G.map((ch, j) => B.ch.includes(ch) ? j : -1).filter(j => j >= 0), a = B.r0 - (st.row - half), b2 = B.r1 - (st.row - half);
+    if (js.length && b2 >= 0 && a < PROWS) { const xa = x0 + js[0] * cw - 2, xb = x0 + (js[js.length - 1] + 1) * cw - 2, ya = PRY + Math.max(0, a) * PRH, yb = PRY + Math.min(PROWS, b2 + 1) * PRH;
+      frameRect(xa, ya, xb - xa + 1, yb - ya, C.yellow); } }
+  meters(G);
+}
+const FXCOL = ['#FFFF55', '#55FF55', '#AAFFAA', '#FF55FF', '#FF9955', '#FF5555', '#55FFFF', '#FFAAFF', '#FFFFFF'];
+const FXCOLT = { PAPER: ['#7A5A00', '#1A6A2A', '#3A7A3A', '#8A2A7A', '#9A4A00', '#A02020', '#005A7A', '#7A3A7A', '#1A1A1A'], MONO: ['#FFFFFF', '#D0D0D0', '#D0D0D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#D0D0D0', '#D0D0D0', '#FFFFFF'],
+  NIGHT: ['#FF8040', '#E06040', '#E07050', '#FF6080', '#FF9060', '#FF3030', '#FF5050', '#FF7090', '#FF7070'] };
+const fxPal = () => FXCOLT[S.color] || FXCOL;
+function fxCol(f, v) { if (f < 0) return C.dim; const k = fxEntry(f, v); return k < 0 ? C.grey : fxPal()[FXL[k].cat]; }
+function drawFxPicker() { const c = cell(), i = fxi(st.field), p = st.fxp, x = FXL[p.k];
+  cards(['TARGET', 'NOW', 'PICK', 'GROUP'], ['FX' + (st.field - 1), fxStr(c[i], c[i + 1]), fxCode(x).slice(0, 3), x.cat < 0 ? '—' : String(x.cat + 1)]);
+  status('CH' + String(st.ch + 1).padStart(2, '0') + ' ROW ' + hex(st.row, 2) + ' · FX' + (st.field - 1) + ' COMMAND', (p.k + 1) + '/' + FXL.length, C.cyan);
+  bar(37, '‹ ' + (x.cat < 0 ? 'NONE' : FXCATS[x.cat]) + ' ›', 'K1 GROUP', C.yellow);
+  const vis = 16, top = clamp(p.k - 7, 0, Math.max(0, FXL.length - vis));
+  for (let k = 0; k < vis && top + k < FXL.length; k++) { const q = FXL[top + k], y = 48 + k * 11, on = top + k === p.k;
+    if (on) rect(0, y, 240, 10, C.cyan); else if (q.cat === x.cat) rect(0, y, 240, 10, C.beat);
+    txt(fxCode(q), 3, y + 2, on ? C.bg : q.cat < 0 ? C.dim : fxPal()[q.cat]); txt(cut(q.name, 150), 28, y + 2, on ? C.bg : C.white);
+    if (q.cat >= 0) txt(cut(FXCATS[q.cat], 56), 238 - tw(cut(FXCATS[q.cat], 56)), y + 2, on ? C.bg : C.dim); }
+  foot('SEL/FX/SAVE PICK · OTHER CANCEL', C.white); }
+function curInsOf(ch) { const p = pat(curPat()); for (let r = 0; r < p.length; r++) if (p[r][ch][0] >= 0 && p[r][ch][1]) return p[r][ch][1]; return 0; }
+function meters(G) { rect(0, 228, 240, 12, C.panel); const T = TRACKS(), w = Math.floor(234 / T.length) - 2;
+  T.forEach((c, k) => { const x = 3 + k * (w + 2), h = Math.round(meter[c] * 7); rect(x, 230, w, 7, isDrum(c) ? C.line : C.track);
+    if (h > 0) rect(x, 237 - h, w, h, meter[c] > .6 ? C.yellow : C.green);
+    if (mute[c]) rect(x, 233, w, 1, C.red);
+    if (G.includes(c)) rect(x, 238, w, 1, c === st.ch ? C.cyan : C.grey); }); }
+function wave(ws, p) { const s = Math.sin(2 * Math.PI * p);
+  return [s, Math.max(s, 0), Math.abs(s), (p % .5) < .25 ? Math.abs(s) : 0, p < .5 ? Math.sin(4 * Math.PI * p) : 0, p < .5 ? Math.abs(Math.sin(4 * Math.PI * p)) : 0, p < .5 ? 1 : -1, p < .5 ? Math.pow(1 - p * 2, 3) : -Math.pow((p - .5) * 2, 3)][ws]; }
+function opTabs(ins) {
+  if (song.inst[st.isel - 1].four) { ['OP1 M1', 'OP2 C1', 'OP3 M2', 'OP4 C2'].forEach((t, j) => { const x = j * 60, on = st.op === j; rect(x, 37, 59, 10, on ? C.mag : C.bar); txt(t, x + 4, 39, on ? C.bg : C.grey); }); return; }
+  ['OP1 MOD', 'OP2 CAR'].forEach((t, j) => { const x = j * 120, on = st.op === j; rect(x, 37, 119, 10, on ? C.cyan : C.bar); txt(t, x + 4, 39, on ? C.bg : C.grey);
+    if (j === 0 && st.ipg === 2 && !ins.con) txt('= DEPTH', x + 56, 39, on ? C.bg : C.dim); });
+}
+function chip(x, y, w, label, on, cur) { rect(x, y, w, 11, on ? C.green : C.line); ctxt(label, x + w / 2, y + 2, on ? C.bg : C.dim); if (cur) frameRect(x - 2, y - 2, w + 4, 15, C.white); }
+function hbar(x, y, w, v, max, col) { rect(x, y, w, 5, C.line); rect(x, y, Math.round(w * v / max), 5, col); }
+function drawIns() {
+  if (st.pw) return drawPresets();
+  const N0 = song.inst[st.isel - 1], { h: ins, j: oj } = halfOf(), o = ins.op[oj], ft = N0.ft || 0, b4 = N0.four ? (st.op < 2 ? 0 : 2) : 0;
+  const pg = st.ipg;
+  if (pg === 0) cards(['INSTR', 'WAVE', FLAGS[st.flag][1] + (st.shift ? ' SET' : ' ‹›'), 'MULT'], [hex(st.isel, 2), String(o.ws), o[FLAGS[st.flag][0]] ? 'ON' : 'OFF', '×' + MULT[o.mult]]);
+  else if (pg === 1) cards(['ATTACK', 'DECAY', 'SUSTAIN', 'RELEASE'], [ms(ATK[o.ar]), ms(DEC[o.dr]), String(15 - o.sl), ms(DEC[o.rr])]);
+  else if (pg === 2) cards(['LEVEL', 'FEEDBACK', 'FINE TUNE', 'PAN'], [String(63 - o.tl), String((N0.four ? song.inst[st.isel] : ins).fb), (ft > 0 ? '+' : '') + ft, ['L', 'C', 'R'][N0.pan]]);
+  else cards(['KEY SCALE', 'CONNECT', 'ARP TABLE', 'VIB TABLE'], [KSLN[KSLO.indexOf(o.ksl)], N0.four ? ALGN[algOf(N0)].slice(4).replace('/', '') : N0.con ? 'ADD' : 'FM', N0.arpT ? hex(N0.arpT, 2) : 'OFF', N0.vibT ? hex(N0.vibT, 2) : 'OFF']);
+  status(`INS ${hex(st.isel, 2)} ${N0.name}${N0.four ? ' · 4OP' : ''}`, `${PG[pg]} ${pg + 1}/4`, N0.four ? C.mag : C.cyan);
+  opTabs(ins);
+  for (let j = 0; j < 2; j++) { const op = ins.op[j], x = j * 120 + 1, sel = oj === j, cw = 118;
+    if (pg === 0) {
+      rect(x, 49, cw, 64, C.bar); txt(WNAME[op.ws], x + 3, 51, sel ? C.white : C.grey); txt('W' + op.ws, x + cw - 14, 51, C.dim);
+      plot(p => wave(op.ws, p * 2 % 1), x + 4, cw - 8, 86, 19, sel ? C.green : '#33AA66');
+      txt('MULT', x + 3, 121, C.grey); txt('×' + MULT[op.mult], x + 34, 117, sel ? C.yellow : C.grey, 12);
+      FLAGS.forEach((f, k) => chip(x + 2 + k * 29, 138, 26, f[1], !!op[f[0]], sel && k === st.flag));
+    } else if (pg === 1) {
+      rect(x, 49, cw, 82, C.bar);
+      const top = 60, bot = 126, slY = top + (bot - top) * op.sl / 15, seg = v => 4 + (15 - v) * 1.6, col = sel ? C.yellow : '#AAAA44';
+      let px = x + 4, py = bot; const to = (nx, ny) => { pline(px, py, nx, ny, col); px = nx; py = ny; };
+      to(px + (op.ar === 15 ? 1 : seg(op.ar)), top); to(px + seg(op.dr), slY); if (op.egt) to(px + 18, slY); to(Math.min(px + seg(op.rr) + 2, x + cw - 3), bot);
+      if (!op.egt) txt('NO HOLD', x + cw - 44, 51, C.mag);
+      [['A', 15 - op.ar, ms(ATK[op.ar])], ['D', 15 - op.dr, ms(DEC[op.dr])], ['S', 15 - op.sl, 'LVL ' + (15 - op.sl)], ['R', 15 - op.rr, ms(DEC[op.rr])]].forEach(([l, v, t], k) => { const y = 136 + k * 12;
+        txt(l, x + 2, y, sel ? C.white : C.grey); hbar(x + 11, y + 1, 46, v, 15, sel ? C.yellow : C.dim); txt(t, x + 62, y, sel ? C.cyan : C.dim); });
+    } else if (pg === 2) {
+      rect(x, 49, cw, 40, C.bar); txt(isCar(N0, b4 + j) ? 'OUT LEVEL' : 'MOD DEPTH', x + 3, 51, C.grey);
+      txt(String(63 - op.tl), x + 3, 61, sel ? C.yellow : C.grey, 12); txt('-' + (op.tl * 0.75).toFixed(1) + 'DB', x + 40, 65, C.dim);
+      hbar(x + 3, 80, cw - 6, 63 - op.tl, 63, sel ? C.green : C.dim);
+    } else {
+      rect(x, 49, cw, 52, C.bar); txt('KEY SCALE LVL', x + 3, 51, C.grey);
+      txt(KSLN[KSLO.indexOf(op.ksl)] + ' DB/OCT', x + 3, 62, sel ? C.yellow : C.grey);
+      const dbo = [0, 3, 1.5, 6][op.ksl]; pline(x + 8, 76, x + cw - 8, 76 + dbo * 2.2, sel ? C.green : C.dim);
+      txt('LOW', x + 3, 92, C.dim); txt('HIGH', x + cw - 26, 92, C.dim);
+    }
+  }
+  if (pg === 0) { rect(0, 157, 240, 22, C.panel); txt(cut(FLAGS[st.flag][2], 236), 2, 159, C.grey); txt('HOME+KNOB3 = ON/OFF', 2, 169, C.dim); }
+  if (pg === 2) {
+    const y = 93; rect(1, y, 238, 82, C.bar);
+    { const fbv = (N0.four ? song.inst[st.isel] : ins).fb; txt(N0.four ? 'FEEDBACK M1' : 'FEEDBACK', 5, y + 4, C.grey); txt(String(fbv), 92, y + 4, C.yellow); hbar(108, y + 5, 126, fbv, 7, C.yellow); }
+    txt('FINE TUNE', 5, y + 22, C.grey); txt((ft > 0 ? '+' : '') + ft + 'C', 64, y + 22, C.yellow);
+    rect(108, y + 23, 126, 5, C.line); rect(171, y + 21, 1, 9, C.grey); const fx = 171 + Math.round(ft / 99 * 62); rect(Math.min(fx, 171), y + 23, Math.abs(fx - 171), 5, C.cyan);
+    txt('PANNING', 5, y + 41, C.grey); ['L', 'C', 'R'].forEach((l, k) => chip(108 + k * 43, y + 39, 39, l, N0.pan === k, false));
+    txt('CONNECT', 5, y + 62, C.grey); txt(N0.four ? ALGN[algOf(N0)] : ins.con ? 'ADD OP1+OP2' : 'FM OP1→OP2', 108, y + 62, C.cyan);
+  }
+  if (pg === 3) {
+    const y = 105; rect(1, y, 238, 88, C.bar); txt('CONNECTION', 5, y + 3, C.grey);
+    const box = (bx, by, l) => { rect(bx, by, 40, 15, C.cyan); ctxt(l, bx + 20, by + 4, C.bg); };
+    const arrow = (x1, x2, yy) => { rect(x1, yy, x2 - x1, 1, C.white); rect(x2 - 3, yy - 2, 1, 5, C.white); rect(x2 - 2, yy - 1, 1, 3, C.white); };
+    if (N0.four) { const a = connOf(N0), rows = [[[1, 2, 3, 4]], [[1], [2, 3, 4]], [[1, 2], [3, 4]], [[1], [2, 3], [4]]][a];
+      rows.forEach((R, r) => { const yy = y + 12 + r * 22 + (3 - rows.length) * 11; R.forEach((n, k) => { const bx = 14 + (4 - R.length + k) * 44; rect(bx, yy, 32, 15, C.mag); ctxt('OP' + n, bx + 16, yy + 4, C.bg); if (k < R.length - 1) arrow(bx + 32, bx + 44, yy + 7); });
+        arrow(14 + 3 * 44 + 32, 194, yy + 7); }); rect(194, y + 12 + (3 - rows.length) * 11 + 7, 1, (rows.length - 1) * 22 + 1, C.white); txt('OUT', 200, y + 38, C.white);
+      txt(ALGN[algOf(N0)] + (a === 1 || a === 2 ? ' (*)' : ''), 20, y + 76, C.yellow); txt('FEEDBACK ON M1 ONLY', 120, y + 76, C.dim); }
+    else if (!ins.con) { box(20, y + 30, 'OP1'); arrow(60, 98, y + 37); box(100, y + 30, 'OP2'); arrow(140, 186, y + 37); txt('OUT', 190, y + 34, C.white); txt('FM: OP1 BENDS OP2', 20, y + 60, C.yellow); }
+    else { box(40, y + 16, 'OP1'); box(40, y + 44, 'OP2'); arrow(80, 140, y + 23); arrow(80, 140, y + 51); rect(140, y + 23, 1, 29, C.white); arrow(140, 186, y + 37); txt('OUT', 190, y + 34, C.white); txt('ADD: BOTH HEARD', 20, y + 70, C.yellow); }
+  }
+}
+function drawName() {
+  const songN = st.nt === 'song' || st.nt === 'ren', slot = songN ? 'SLOT ' + (st.nslot + 1) : 'U' + String(userP.length + 1).padStart(2, '0'), pend = st.tk >= 0 && performance.now() - st.tt < 1000;
+  cards(['NAME', 'CURSOR', songN ? 'TARGET' : 'SLOT', 'LENGTH'], [st.nm.slice(0, 4) || '—', String(st.nc), !songN && userP.length >= 32 ? 'FULL' : songN ? String(st.nslot + 1) : slot, st.nm.length + '/11']);
+  status(st.nt === 'ren' ? 'RENAME SLOT ' + (st.nslot + 1) : songN ? 'SAVE SONG → SLOT ' + (st.nslot + 1) : 'SAVE PRESET ' + slot + ' FROM INS ' + hex(st.isel, 2), st.nt === 'ren' ? 'RENAME' : 'NAME', C.yellow);
+  rect(2, 40, 236, 32, C.bar);
+  for (let k = 0; k < 11; k++) { const x = 10 + k * 20, ch = st.nm[k] || '';
+    rect(x, 65, 16, 1, k < st.nm.length ? C.grey : C.dim);
+    if (pend && k === st.nc - 1) rect(x - 1, 45, 18, 18, C.yellow);
+    if (ch) txt(ch === ' ' ? '␣' : ch, x + 3, 47, pend && k === st.nc - 1 ? C.bg : C.white, 12); }
+  if (performance.now() % 1000 < 600) rect(10 + st.nc * 20 - 3, 44, 2, 22, C.cyan);
+  const wn = ['F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5'];
+  for (let k = 0; k < 16; k++) { const x = 2 + (k % 4) * 60, y = 76 + Math.floor(k / 4) * 22, last = st.tk === WH[k] && pend;
+    rect(x, y, 56, 19, last ? C.cyan : C.bar); txt(wn[k], x + 3, y + 6, last ? C.bg : C.dim); txt(WCH[k].replace(' ', '␣'), x + 19, y + 3, last ? C.bg : C.white, 12); }
+  txt('BLACK: ' + BCH.join(' '), 3, 166, C.dim);
+  rect(0, 180, 240, 60, C.panel);
+  txt('SAVE   CONFIRM', 4, 184, C.white); txt('ENV    CANCEL', 4, 194, C.grey); txt('EDIT   BACKSPACE', 4, 204, C.grey); txt('KNOB1  CURSOR', 4, 214, C.grey); txt('KNOB2  SCROLL LETTER', 4, 224, C.grey);
+}
+function drawPresets() {
+  const L = PL(), p = L[st.pi], cat = p.cat, inCat = L.filter(q => q.cat === cat);
+  const num = q => q.user === undefined ? String(L.indexOf(q) + 1).padStart(2, '0') : 'U' + String(q.user + 1).padStart(2, '0');
+  cards(['CATEGORY', 'PRESET', 'TARGET', 'USER'], [CATS[cat].slice(0, 9), num(p), hex(st.isel, 2), userP.length + '/32']);
+  status('PRESET → INS ' + hex(st.isel, 2) + ' ' + song.inst[st.isel - 1].name, (inCat.indexOf(p) + 1) + '/' + inCat.length, C.cyan);
+  bar(37, '‹ ' + CATS[cat] + ' ›', 'K1 CATEGORY', C.yellow);
+  const vis = 15, top = clamp(st.pi - 7, 0, Math.max(0, L.length - vis));
+  for (let k = 0; k < vis && top + k < L.length; k++) { const q = L[top + k], y = 48 + k * 12, on = top + k === st.pi, us = q.user !== undefined;
+    if (on) rect(0, y, 240, 11, C.cyan); else if (q.cat === cat) rect(0, y, 240, 11, C.beat);
+    txt(num(q), 3, y + 2, on ? C.bg : us ? C.mag : C.dim); txt(q.name, 26, y + 2, on ? C.bg : C.white);
+    txt(cut(CATS[q.cat], 72), 120, y + 2, on ? C.bg : us ? C.mag : C.dim);
+    txt(q.inst.con ? 'ADD' : 'FM', 220, y + 2, on ? C.bg : C.green); }
+  foot('SEL LOAD · ENV CANCEL' + (p.user !== undefined ? ' · EDIT×2 DEL' : ''), C.white);
+}
+function drawReg() { const ins = regIns(), M = ins.fmm || blankFmm(), rs = st.rs || 0, k = st.rc || 0, s = M.steps[rs], v = s && rs < M.len ? regGet(s, k) : null, off = k < 28 && M.dis[k];
+  const fmtv = (k, v) => v === null ? '—' : k === 28 ? TRIGN[v] : k === 27 ? PANN[v] || '?' : k === 26 ? (v > 0 ? '+' : '') + v : String(v);
+  cards(['REG INS', 'STEP', cut(REGC[k][0], 54), st.shift ? 'KEY-OFF' : 'DURATION'], [hex(st.mi, 2), M.len ? (rs + 1) + '/' + M.len : '0', off ? 'OFF' : fmtv(k, v), st.shift ? (M.ko ? hex(M.ko, 2) : 'OFF') : s && rs < M.len ? String(s.dur) : '—']);
+  status(`${ins.name} L${M.len} LOOP ${M.lb ? hex(M.lb, 2) + '+' + M.ll : '-'} KO ${M.ko ? hex(M.ko, 2) : '-'}`, 'REG', C.cyan);
+  bar(37, '► REG MACRO   ' + (k + 1) + '/29', 'ARP SWITCHES', C.white);
+  const gx = 8, cw = 14, top = 51, bot = 160, w0 = Math.floor(rs / 16) * 16, mx = REGC[k][1], neg = k === 26;
+  rect(gx - 2, top - 2, 16 * cw + 2, bot - top + 4, C.bar); if (neg) rect(gx - 2, (top + bot) >> 1, 16 * cw + 2, 1, C.dim);
+  for (let j = 0; j < 16; j++) { const n = w0 + j, x = gx + j * cw, st0 = M.steps[n], inL = n < M.len, on = n === rs;
+    if (inL && st0) { const val = regGet(st0, k), col = off ? C.dim : on ? C.cyan : C.green;
+      if (neg) { const mid = (top + bot) >> 1, h = Math.round(Math.min(255, Math.abs(val)) / 255 * (bot - top) / 2); rect(x + 2, val > 0 ? mid - h : mid + 1, cw - 4, Math.max(1, h), col); }
+      else { const h = Math.max(1, Math.round(val / mx * (bot - top - 4))); rect(x + 2, bot - h, cw - 4, h, col); }
+      const dh = Math.min(10, st0.dur); rect(x + 2, bot + 14 - dh, cw - 4, dh, st0.dur ? C.yellow : C.red); }
+    if (on) frameRect(x, top - 1, cw, bot - top + 2, C.white);
+    txt(hex(n + 1, 2).slice(-2), x + 1, 178, on ? C.white : inL ? C.grey : C.line); }
+  txt('DUR', gx - 4, 163, C.dim);
+  if (M.lb && M.ll) { const a = M.lb - 1 - w0, b2 = M.lb - 1 + M.ll - w0; if (b2 > 0 && a < 16) { const x1 = gx + Math.max(0, a) * cw, x2 = gx + Math.min(16, b2) * cw; rect(x1, 190, x2 - x1 - 2, 1, C.green); txt('LOOP', x1 + 2, 193, C.green); } }
+  if (M.ko && M.ko - 1 >= w0 && M.ko - 1 < w0 + 16) { const x = gx + (M.ko - 1 - w0) * cw; rect(x, 188, 1, 14, C.red); txt('KO', x + 3, 193, C.red); }
+  txt(off ? REGC[k][0] + ' IS OFF · HOME+K2 TURNS ON' : 'HOME+K2 TURNS THIS COLUMN OFF', 4, 206, off ? C.yellow : C.dim);
+  foot(M.len ? 'K1 STEP K2 COL K3 VALUE K4 DUR' : 'TURN K3 OR SELECT TO ADD STEPS', C.white); }
+function drawMac() { if (st.mk === 'reg') return drawReg();
+  const A = st.mk === 'arp', t = mtab(), lim = A ? 24 : 32;
+  const used = song.inst.map((x, k) => (A ? x.arpT : x.vibT) === st.mt ? hex(k + 1, 2) : null).filter(Boolean);
+  const fmt = v => (v > 0 ? '+' : '') + v;
+  cards([A ? 'ARP TABLE' : 'VIB TABLE', 'STEP', A ? 'SEMITONE' : 'DEPTH', st.shift && !A ? 'DELAY' : 'SPEED'], [hex(st.mt, 2), hex(st.ms, 1) + '/' + hex(t.len - 1, 1), fmt(t.data[st.ms]), st.shift && !A ? String(t.delay) : String(t.spd)]);
+  status(`${(t.name || 'TABLE ' + hex(st.mt, 2))} L${t.len} LP${t.loop < 0 ? '-' : hex(t.loop, 1)}${A ? '' : ' D' + t.delay}`, A ? 'ARP' : 'VIB', A ? C.yellow : C.mag);
+  bar(37, A ? '► ARP   VIB' : '  ARP ► VIB', 'ARP SWITCHES', C.white);
+  const gx = 8, cw = 14, top = 51, bot = 177, mid = Math.round((top + bot) / 2), sc = (bot - top) / 2 / lim;
+  rect(gx - 2, top - 2, 16 * cw + 2, bot - top + 4, C.bar); rect(gx - 2, mid, 16 * cw + 2, 1, C.dim);
+  for (let k = 0; k < 16; k++) { const x = gx + k * cw, v = t.data[k], inL = k < t.len, on = k === st.ms;
+    const h = Math.round(Math.max(-lim, Math.min(lim, v)) * sc), col = !inL ? '#2A2A8A' : on ? C.cyan : A ? C.yellow : C.mag;
+    if (v) rect(x + 2, v > 0 ? mid - h : mid + 1, cw - 4, Math.max(1, Math.abs(h)), col); else rect(x + 2, mid - 1, cw - 4, 3, col);
+    if (on) frameRect(x, top - 1, cw, bot - top + 2, C.white);
+    txt(hex(k, 1), x + 4, 181, on ? C.white : inL ? C.grey : '#3A3A9A'); }
+  if (t.loop >= 0) { const x1 = gx + t.loop * cw, x2 = gx + t.len * cw; rect(x1, 192, x2 - x1 - 2, 1, C.green); rect(x1, 189, 1, 4, C.green); rect(x2 - 3, 189, 1, 4, C.green); txt('LOOP', x1 + 2, 195, C.green); }
+  else txt('ONE SHOT', gx, 193, C.dim);
+  txt(cut(used.length ? 'USED BY ' + used.join(' ') : 'NOT USED (ENV PAGE 4)', 232), gx - 4, 206, used.length ? C.green : C.dim);
+  foot('PREVIEW ' + hex(st.mi, 2) + ' ' + song.inst[st.mi - 1].name, C.white);
+}
+function drawFile() {
+  if (st.imp) return drawImport();
+  const sl = slots[st.fsel], cur = st.slot;
+  const dt = t => { if (!t) return ''; const d = new Date(t); return String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  cards(['SLOT', 'SONG', 'PATTERNS', 'SIZE'], [String(st.fsel + 1) + (st.fsel === cur ? '●' : ''), sl ? (sl.name || '?').slice(0, 4) : '—', sl ? String(sl.pats) : '—', sl ? Math.round(sl.size / 1024) + 'K' : '—']);
+  const mine = sl && st.fsel === cur;
+  status(!sl ? 'EMPTY · SAVE ASKS FOR A NAME' : mine && !st.dirty ? 'THIS SONG · NO CHANGES' : mine ? 'THIS SONG · CHANGED' : 'ANOTHER SONG', !sl ? 'NEW' : mine && !st.dirty ? 'SAVED' : 'OVERWRITE', !sl ? C.green : mine && !st.dirty ? C.cyan : C.red);
+  for (let k = 0; k < 4; k++) { const x = slots[k], y = 38 + k * 30, on = k === st.fsel;
+    rect(1, y, 238, 28, on ? C.cyan : C.bar); txt(String(k + 1), 7, y + 7, on ? C.bg : C.yellow, 12);
+    if (x) { txt(x.name, 26, y + 3, on ? C.bg : C.white, 12); txt(x.len + ' POS · ' + x.pats + ' PAT', 26, y + 19, on ? C.bg : C.grey); txt(dt(x.date), 236 - tw(dt(x.date)), y + 19, on ? C.bg : C.dim); }
+    else txt('— EMPTY —', 26, y + 10, on ? C.bg : C.dim);
+    if (k === cur) txt('●', 230, y + 3, on ? C.bg : C.green); }
+  rect(1, 160, 238, 66, C.line);
+  [['SAVE', !sl ? 'NAME → SAVE' : mine && !st.dirty ? 'SAVE (NO CHANGES)' : 'OVERWRITE (TWICE)'], ['SEL', 'LOAD'], ['EDIT', 'RENAME'], ['OCT−', 'DELETE (TWICE)'], ['FX', 'EXPORT → USB'], ['ENV', 'IMPORT FROM USB']].forEach(([k, v], i) => { txt(k, 5, 163 + i * 10, C.white); txt(v, 41, 163 + i * 10, C.grey); });
+  foot('OCT+ NEW SONG (TWICE) · OTHERS CANCEL', C.dim);
+  if (owArmed()) { rect(14, 70, 212, 70, C.play); frameRect(16, 72, 208, 66, C.white);
+    ctxt('OVERWRITE?', 120, 78, C.white, 12);
+    ctxt(cut('SLOT ' + (st.fsel + 1) + ': ' + (sl.name || '?') + ' → ' + (song.name || 'NONAME'), 196), 120, 99, C.yellow);
+    ctxt('SAVE AGAIN TO CONFIRM', 120, 115, C.white); ctxt('ANY OTHER BUTTON CANCELS', 120, 125, C.white); }
+}
+function drawImport() {
+  const t = performance.now() / 1000;
+  if (st.imp === 'wait') {
+    cards(['USB', 'MODE', 'ACCEPTS', 'SLOTS'], ['ON', 'IN', 'A2M', slots.filter(Boolean).length + '/4']);
+    status('USB IMPORT', 'WAITING', C.yellow);
+    const cx = 120, cy = 100; g.strokeStyle = C.cyan; g.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { const ph = (t * 0.8 + k / 3) % 1; g.globalAlpha = 1 - ph; g.beginPath(); g.arc(cx, cy, 12 + ph * 44, 0, Math.PI * 2); g.stroke(); } g.globalAlpha = 1;
+    rect(cx - 9, cy - 14, 18, 22, C.cyan); rect(cx - 5, cy - 10, 3, 4, C.bg); rect(cx + 2, cy - 10, 3, 4, C.bg); rect(cx - 3, cy + 8, 6, 10, C.cyan);
+    txt('WAITING' + '.'.repeat(1 + Math.floor(t * 2) % 3), 78, 156, C.white, 12);
+    ctxt('CONNECT USB AND SEND AN .A2M', 120, 180, C.grey); ctxt('FROM THE UPDATE PAGE', 120, 190, C.grey); ctxt('AT2 V9–V14 · ZIP OK', 120, 206, C.dim);
+    foot('ENV / HOME CANCEL', C.white);
+    return; }
+  const r = st.impData, sg = r.song, sl = slots[st.fsel];
+  cards(['FILE', 'FORMAT', 'TO SLOT', 'SIZE'], [r.file.replace(/\.(a2m|zip)$/i, '').slice(0, 4), 'V' + r.ver, String(st.fsel + 1), sg.patterns.length + 'P']);
+  status('RECEIVED ' + sg.name, sl ? 'OVERWRITE' : 'READY', sl ? C.red : C.green);
+  rect(1, 38, 238, 64, C.bar);
+  [['SONG', sg.name], ['ORDER', sg.order.length + ' POS · ' + sg.rows + ' ROWS'], ['INSTR', String(sg.inst.length)], ['TEMPO', sg.bpm + ' BPM · SPD ' + sg.speed], ['TABLES', sg.arp.filter(a => a.len > 1 || a.data[0]).length + ' ARP · ' + sg.vib.filter(a => a.len > 1 || a.data[0]).length + ' VIB']]
+    .forEach(([k, v], i) => { txt(k, 5, 41 + i * 12, C.grey); txt(cut(v, 180), 52, 41 + i * 12, C.white); });
+  rect(1, 104, 238, 70, C.line); txt(r.warn.length ? 'NOTES' : 'NO CONVERSION NOTES', 5, 107, r.warn.length ? C.yellow : C.green);
+  r.warn.slice(0, 5).forEach((w, i) => txt(cut('· ' + w, 232), 5, 119 + i * 10, C.grey));
+  for (let k = 0; k < 4; k++) { const x = 1 + k * 60, on = k === st.fsel; rect(x, 177, 58, 30, on ? C.cyan : C.bar); txt(String(k + 1), x + 4, 180, on ? C.bg : C.yellow, 12);
+    txt(cut(slots[k] ? slots[k].name : 'EMPTY', 52), x + 4, 197, on ? C.bg : slots[k] ? C.white : C.dim); }
+  foot('SAVE STORE & LOAD · ENV CANCEL', C.white);
+}
+function drawGlo() { const g = st.gpg;
+  if (g === 0) cards(['BPM', 'SPEED', 'ROWS', 'G.VOLUME'], [String(song.bpm), String(song.speed), String(song.rows), String(song.gvol)]);
+  else if (g === 2) cards(['PERC', '4OP PAIR', 'PAIR', 'MACRO SPD'], [song.perc ? 'ON' : 'OFF', (HI4[st.p4 || 0] + 1) + '-' + (HI4[st.p4 || 0] + 2), song.four >> (st.p4 || 0) & 1 ? 'ON' : 'OFF', '×' + (song.mspd || 1)]);
+  else cards(['CHIP', 'AM DEPTH', 'VIB DEPTH', 'FX SHAPE'], [song.opl === 2 ? 'OPL2' : 'OPL3', song.lfo & 2 ? '4.8DB' : '1DB', song.lfo & 1 ? '14C' : '7C', hex(song.vtab || 0, 2)]);
+  status('GLOBAL · ' + (song.name || 'NONAME'), ['TEMPO', 'CHIP', 'VOICES'][g] + ' ' + (g + 1) + '/3', C.cyan);
+  ['TEMPO', 'CHIP', 'VOICES'].forEach((tb, j) => { const x = j * 80, on = g === j; rect(x, 37, 79, 10, on ? C.cyan : C.bar); txt(tb, x + 4, 39, on ? C.bg : C.grey); });
+  if (g === 2) { const o2 = song.opl === 2;
+    rect(1, 49, 238, 82, C.bar); txt('4OP PAIRS (OPL3)', 5, 52, C.grey); txt('K2 PICK · K3 ON/OFF', 236 - tw('K2 PICK · K3 ON/OFF'), 52, C.dim);
+    HI4.forEach((h, p) => { const x = 5 + (p % 3) * 77, y = 64 + Math.floor(p / 3) * 22, on = !o2 && (song.four >> p & 1);
+      rect(x, y, 72, 18, on ? C.mag : C.line); txt(String(h + 1).padStart(2, '0') + '+' + String(h + 2).padStart(2, '0'), x + 5, y + 6, on ? C.bg : C.dim); txt(on ? '4OP' : '2OP', x + 48, y + 6, on ? C.bg : C.dim);
+      if (p === (st.p4 || 0)) frameRect(x - 2, y - 2, 76, 22, C.white); });
+    txt(o2 ? 'NOT AVAILABLE IN OPL2' : 'NOTES GO ON THE FIRST TRACK OF A PAIR', 5, 112, o2 ? C.yellow : C.dim); txt('ALGORITHM ON ENV PICKS A 4OP SOUND', 5, 122, C.dim);
+    rect(1, 134, 238, 60, C.panel); txt('PERCUSSION (RHYTHM) MODE', 5, 137, C.grey); txt(song.perc ? 'ON' : 'OFF', 236 - tw(song.perc ? 'ON' : 'OFF'), 137, song.perc ? C.green : C.dim);
+    DRN.forEach((n, k) => { const x = 5 + k * 47; rect(x, 149, 43, 18, song.perc ? C.chsel : C.line); txt(n, x + 4, 152, song.perc ? C.white : C.dim); txt(String(16 + k), x + 4, 160, C.dim); });
+    txt(song.perc ? 'SEL ON PATTERN: DRUM VIEW LAST' : 'TRACKS 16–20 BECOME DRUMS', 5, 172, C.dim); txt(o2 ? '6 MELODIC + 5 DRUMS' : '15 MELODIC + 5 DRUMS', 5, 182, C.dim);
+    rect(1, 197, 238, 28, C.panel); txt('MACRO SPEED ×' + (song.mspd || 1), 5, 200, C.grey); txt('ARP · VIB · REG MACROS PER TICK', 5, 211, C.dim);
+    return; }
+  if (g === 0) { const tick = 2500 / song.bpm, rm = tick * song.speed, secs = Math.round(song.order.length * song.rows * rm / 1000);
+    rect(1, 49, 238, 70, C.bar);
+    [['TICK', tick.toFixed(1) + ' MS (' + (song.bpm / 2.5).toFixed(0) + ' HZ)'], ['ROW', Math.round(rm) + ' MS · ' + song.speed + ' TICKS'], ['PATTERN', (song.rows * rm / 1000).toFixed(1) + ' S · ' + song.rows + ' ROWS'],
+     ['SONG', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0') + ' · ' + song.order.length + ' POSITIONS'], ['BEAT', (60000 / (rm * 4)).toFixed(1) + ' BPM AT 4 ROWS']].forEach(([k, v], i) => { txt(k, 5, 52 + i * 13, C.grey); txt(cut(v, 170), 64, 52 + i * 13, C.white); });
+    rect(1, 122, 238, 46, C.panel); txt('GLOBAL VOLUME', 5, 126, C.grey); txt(String(song.gvol), 110, 126, C.yellow); hbar(130, 127, 104, song.gvol, 63, C.green);
+    txt('START LEVEL. % AND &6–&B CHANGE IT', 5, 140, C.dim); txt('WHILE THE SONG PLAYS.', 5, 150, C.dim);
+    rect(1, 171, 238, 54, C.panel); txt('ROWS PER PATTERN', 5, 175, C.grey); ROWOPT.forEach((n, k) => chip(5 + k * 29, 187, 26, String(n), song.rows === n, false));
+    txt('SHORTER CUTS ROWS: HOLD HOME', 5, 205, C.dim); txt('F SPEED/BPM STILL WORKS IN SONGS', 5, 215, C.dim); }
+  else { const o3 = song.opl !== 2;
+    rect(1, 49, 238, 66, C.bar); ['OPL2', 'OPL3'].forEach((m, k) => { const on = (k === 1) === o3, x = 5 + k * 117; rect(x, 52, 113, 58, on ? C.chsel : C.line);
+      txt(m, x + 4, 55, on ? C.white : C.dim, 12); [k ? '18 CHANNELS' : '9 CHANNELS', k ? '8 WAVEFORMS' : '4 WAVEFORMS', k ? 'STEREO PAN' : 'MONO'].forEach((l, i) => txt(l, x + 4, 74 + i * 11, on ? C.cyan : C.dim)); });
+    txt('◄ K1', 5 + 117 - 26, 55, C.dim); txt('K1 ►', 5 + 117 + 113 - 28, 55, C.dim);
+    const hi = song.patterns.some(P => P && P.some(l => l.slice(9).some(c => c[0] >= 0))), w4 = song.inst.some(i => i.op.some(o => o.ws > 3));
+    if (!o3 && (hi || w4)) txt(hi ? 'CH10–18 NOTES ARE SILENT' : 'WAVES 4–7 PLAY AS 0–3', 5, 118, C.yellow);
+    rect(1, 130, 238, 26, C.panel); txt('CHIP LFO', 5, 134, C.grey); txt('AM ' + (song.lfo & 2 ? '4.8 DB' : '1.0 DB'), 64, 134, C.white); txt('VIB ' + (song.lfo & 1 ? '14 CENT' : '7 CENT'), 150, 134, C.white);
+    txt('LFO BUTTON CYCLES BOTH', 5, 145, C.dim);
+    const E = {}; Engine.prototype.speedTab.call(E, song.vtab || 0);
+    rect(1, 159, 238, 68, C.panel); txt('FX SHAPE ' + hex(song.vtab || 0, 2) + (song.vtab ? '' : ' SINE') + ' · FOR 4XY MXY', 5, 162, C.grey);
+    let py = null; for (let i = 0; i < 228; i++) { const p = Math.floor(i * 128 / 228), v = E.VT[p & (E.vsize - 1)] * (p & E.vsize ? 1 : -1), y = Math.round(194 - v / 255 * 26); if (py !== null) pline(5 + i, py, 6 + i, y, C.mag); py = y; }
+    txt('×' + E.vfac + ' SPEED', 190, 162, C.dim); }
+}
+function drawAsk() { const a = st.ask, L = a.items, h = 64 + L.length * 11; rect(8, 60, 224, h, C.play); frameRect(10, 62, 220, h - 4, C.white);
+  ctxt(a.title, 120, 68, C.white, tw(a.title, 2) <= 210 ? 12 : 8); L.forEach((l, k) => txt(cut('· ' + l, 210), 16, 88 + k * 11, C.yellow));
+  const y = 92 + L.length * 11; txt('OCT+', 16, y, C.white); txt(a.yes, 46, y, C.grey); txt('OCT−', 16, y + 11, C.white); txt(a.no, 46, y + 11, C.grey); }
+const TABAB = ['DISP', 'CTRL', 'AUDIO', 'MIDI', 'SYS'];
+function drawMenu() { const m = st.menu, rows = menuRows(), r = rows[m.row], v = S[r[1]];
+  cards(['SETTINGS', 'ROW', 'VALUE', 'DEFAULT'], [TABAB[m.tab], String(m.row + 1), v.replace(' ', ''), r[4].replace(' ', '')]);
+  status(r[2], 'HOME CLOSES', C.cyan);
+  SETTABS.forEach((tb, j) => { const x = j * 48, on = m.tab === j; rect(x, 37, 47, 10, on ? C.cyan : C.bar); ctxt(TABAB[j], x + 24, 39, on ? C.bg : C.grey); });
+  rows.forEach((q, k) => { const y = 50 + k * 15, on = k === m.row, val = q[1] === 'info' ? 'FMY262 V0.8.1 · ' + (ctx ? Math.round(ctx.sampleRate / 100) / 10 + 'K' : 'NO AUDIO') : q[1] === 'cpu' ? (cpuV >= 0 ? cpuV + '% PK ' + cpuPk + '% 1C' : '—') : S[q[1]];
+    rect(1, y, 238, 13, on ? C.cyan : C.bar); txt(q[2], 5, y + 3, on ? C.bg : C.white);
+    txt(val, 235 - tw(val), y + 3, on ? C.bg : val === q[4] ? C.grey : C.yellow); if (on && q[3].length > 1) { txt('‹', 235 - tw(val) - 10, y + 3, C.bg); } });
+  const tips = { color: 'SCREEN COLOURS', leds: 'IDLE BUTTON GLOW', sleep: 'BLANK AFTER NO INPUT', rownum: 'ROW LABELS', homev: 'VIEW AT START', hold: 'LONG PRESS TIME (FX, HOME)', accel: 'FAST TURNS MOVE MORE',
+    step: 'ROWS DOWN AFTER A NOTE', wrap: 'CURSOR WRAPS AT ENDS', prev: 'SELECT PLAYS THE NOTE', eq: 'OUTPUT TONE', click: 'METRONOME ON BEATS', clvl: 'METRONOME LEVEL', count: 'BEFORE REC STARTS',
+    tune: 'MASTER TUNE IN CENTS', midiin: 'USB MIDI KEYS PLAY', midirec: 'MIDI NOTES ENTER WHEN REC', restore: 'OPEN LAST SONG AT START', help: 'PAGE TIPS ON SCREEN', cpu: 'AUDIO RENDER, OF ITS TIME', core: 'FM-1: FROM THE NEXT START', reset: 'OCT+ RESETS ALL', info: 'SEL OR OCT+ OPENS · LICENCES' };
+  foot(tips[r[1]] || '', C.dim); }
+/* the start screen (3 s, any input skips) and HOME menu SYSTEM · INFO: about and licences, DOS-style */
+const ABOUT = ['FMY262', 'AN OPL3 TRACKER FOR M-VAVE FM-1', 'V0.8.1 BY MR. TRACY EVANS', 'LICENCE: GPL-2.0-OR-LATER'];
+const LICS = ['FMY262 IS FREE SOFTWARE UNDER THE', 'GNU GPL, VERSION 2 OR LATER.', 'IT COMES WITH NO WARRANTY.', '',
+  'DBOPL OPL3 EMULATOR · GPL-2.0+', ' (C) 2002-2010 THE DOSBOX TEAM', ' C VERSION FROM CHOCOLATE DOOM', '',
+  'FM1-BASE PLATFORM · MPL-2.0', ' (C) 2026 CHARLES VESTAL & OTHERS', ' GITHUB.COM/CHARLESVESTAL/FM1-BASE', '',
+  'FELUCCA-BSP · MPL-2.0', ' (C) 2026 LEO KUROSHITA,', ' HUGELTON INSTRUMENTS', ' GITHUB.COM/HUGELTON/FELUCCA-BSP', '',
+  'BARLOW FONT · OFL-1.1', ' (C) 2017 THE BARLOW PROJECT', ' AUTHORS', '',
+  'FILE FORMATS AND EFFECTS', ' (FOLLOWED; NO CODE OF THEM HERE)', '',
+  'ADLIB TRACKER II · A2M FORMAT', ' (C) SUBZ3RO / ALTAIR', ' ITS EFFECTS ARE FOLLOWED TOO', '',
+  'REALITY ADLIB TRACKER · RAD FORMAT', ' (C) SHAYDE / REALITY', ' RAD 1.0/2.1 FILES IMPORT IN', ' THE WORKBENCH'];
+const DOS = { bg: '#0000aa', line: '#aaaaaa', title: '#ffff55', text: '#ffffff', hi: '#55ffff', dim: '#aaaaaa' }, LPP = 13;
+/* INFO: st.ap 0 = the about page, 1.. = the open-source text scrolled by lines (its top line + 1) */
+const aboutLast = () => 1 + Math.max(0, LICS.length - LPP);
+function openInfo() { st.about = 2; st.ap = 0; }
+/* an input while the start screen or INFO is up: 1 = taken */
+function aboutInput(kind, v, d) {
+  if (!st.about) return false;
+  if (st.about === 1) { st.about = 0; if (kind === 'btn') st.aboutUp = v; return true; }
+  if (kind === 'knob') { if (v === 'sel' || v === 'pre' || v === 0) st.ap = clamp(st.ap + d, 0, aboutLast()); return true; }
+  if (kind === 'btn') { st.aboutUp = v; if (v === 'SEL' || v === 'OCT+') st.ap = st.ap >= aboutLast() ? 0 : st.ap + 1; else if (v === 'OCT−') st.ap = Math.max(0, st.ap - 1); else st.about = 0; }
+  return true; }
+function drawAbout() {
+  rect(0, 0, 240, 240, DOS.bg); frameRect(5, 5, 230, 230, DOS.line); frameRect(8, 8, 224, 224, DOS.line);
+  if (st.about === 1 || st.ap === 0) {
+    ctxt(ABOUT[0], 120, 62, DOS.title, 28); ctxt(ABOUT[1], 120, 108, DOS.text); ctxt(ABOUT[2], 120, 124, DOS.hi);
+    if (st.about === 2) ctxt(ABOUT[3], 120, 150, DOS.dim);
+    ctxt(st.about === 1 ? 'PRESS ANY KEY' : 'SEL: OPEN SOURCE · OTHERS: BACK', 120, 214, DOS.dim); return; }
+  const P = st.ap - 1, t = ' OPEN SOURCE ';
+  rect(120 - Math.round(tw(t) / 2), 5, tw(t), 7, DOS.bg); ctxt(t, 120, 5, DOS.title);
+  LICS.slice(P, P + LPP).forEach((l, i) => txt(l, 14, 22 + i * 14, l[0] === ' ' ? DOS.dim : DOS.text));
+  /* the scroll bar: the shown lines out of all */
+  const H = LPP * 14 - 4, bh = Math.max(8, Math.round(H * Math.min(LPP, LICS.length) / LICS.length)), by = 20 + (aboutLast() > 1 ? Math.round((H - bh) * P / (aboutLast() - 1)) : 0);
+  rect(224, 20, 2, H, DOS.bg); rect(224, by, 2, bh, DOS.line);
+  ctxt('OCT+ DOWN · OCT− UP · ELSE CLOSE', 120, 220, DOS.dim); }
+const HELPTXT = { pat: ['PATTERN', 'K1 PAT K2 CH ALG ◄►', 'K3 FX TYPE K4 VALUE'], ins: ['INSTRUMENT', 'SELECT/ENV PAGES', 'SEL OP1/OP2 · PRESETS LIST'], mac: ['MACRO TABLES', 'ARP SWITCHES ARP/VIB', 'K1 TABLE K2 STEP K3 VALUE'],
+  seq: ['SONG ORDER', 'K1 POS K2 PAT K3 LENGTH', 'OCT+ INSERT · EDIT DELETE'], glo: ['GLOBAL', 'SELECT OR GLO: PAGE', 'TEMPO · CHIP'], file: ['FILE', 'SAVE · SEL LOAD · EDIT NAME', 'OCT− DELETE · FX EXPORT'] };
+function drawSeq() {
+  const secs = Math.round(song.order.length * song.rows * rowMs() / 1000);
+  cards(['POS', 'PATTERN', 'LENGTH', 'TIME'], [hex(st.ord, 2), song.order[st.ord] >= 128 ? 'J' + hex(song.order[st.ord] - 128, 2) : hex(song.order[st.ord], 2), String(song.order.length), secs >= 600 ? Math.round(secs / 60) + 'M' : Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')]);
+  const used = new Set(song.order.filter(v => v < 128)).size;
+  status(`PATS ${used} · ${song.bpm} BPM SPD ${song.speed} · ${song.opl === 2 ? 'OPL2' : 'OPL3'}`, st.playing ? '► PLAY' : '', C.green);
+  const per = 44, start = Math.floor(st.ord / per) * per;
+  for (let i = 0; i < per && start + i < song.order.length; i++) { const n = start + i, x = 1 + (i % 4) * 60, y = 38 + Math.floor(i / 4) * 16;
+    const on = n === st.ord, pl = st.playing && n === st.pord;
+    rect(x, y, 58, 15, on ? C.cyan : C.bar); txt(hex(n, 2), x + 3, y + 4, on ? C.bg : C.dim);
+    txt(song.order[n] >= 128 ? 'JMP ' + hex(song.order[n] - 128, 2) : 'PAT ' + hex(song.order[n], 2), x + 20, y + 4, on ? C.bg : song.order[n] >= 128 ? C.yellow : C.white); if (pl) rect(x, y + 13, 58, 2, C.red); }
+  foot('OCT+ INSERT · OCT− DELETE POSITION', C.white);
+}
+let lastNmode = null, helpPage = '', helpT = 0;
+function frame() {
+  g.setTransform(SC, 0, 0, SC, 0, 0); g.imageSmoothingEnabled = false; rect(0, 0, 240, 240, C.bg);
+  fixCh();
+  { const sv = st.page === 'pat' && !!st.scope && !st.about && !st.menu && !st.nw;   /* (the engine keeps the waves only while they are shown) */
+    if (ctx && sv !== scopeWas) { post({ t: 'scopeon', on: sv }); scopeWas = sv; if (!sv) scopeD = null; }
+    if (ctx && sv) post({ t: 'scope', tr: scopeTracks(), n: SCN }); }
+  if (asleep()) { rect(0, 0, 240, 240, '#000000'); requestAnimationFrame(frame); return; }
+  if (st.about === 1 && performance.now() - st.aboutT >= 3000) st.about = 0;
+  if (st.about) drawAbout(); else if (st.menu) drawMenu(); else if (st.nw) drawName(); else if (st.page === 'glo') drawGlo(); else if (st.page === 'pat') drawPat(); else if (st.page === 'ins') drawIns(); else if (st.page === 'mac') drawMac(); else if (st.page === 'file') drawFile(); else drawSeq();
+  for (let c = 0; c < 18; c++) meter[c] *= 0.9;
+  const t = performance.now() - st.msgT;
+  if (st.msg && t < 1000 && !st.about) { const m = cut(st.msg, 220), w = tw(m) + 12; rect(120 - Math.round(w / 2), 112, w, 15, C.grey); ctxt(m, 120, 116, C.bar); }
+  if (!ctx && !window.__ui) { rect(30, 96, 180, 44, '#000060'); rect(30, 96, 180, 1, C.cyan); rect(30, 139, 180, 1, C.cyan); ctxt('CLICK OR PRESS A KEY', 120, 106, C.white); ctxt('TO START AUDIO', 120, 122, C.cyan); }
+  if (st.ask && !st.about) drawAsk();
+  hintPanel();
+  if (st.page !== helpPage) { helpPage = st.page; helpT = performance.now(); }
+  if (S.help === 'ON' && !st.about && !st.menu && !st.nw && HELPTXT[st.page] && performance.now() - helpT < 1800) { const L = HELPTXT[st.page]; rect(20, 150, 200, 40, C.panel); frameRect(20, 150, 200, 40, C.cyan); L.forEach((l, i) => ctxt(l, 120, 155 + i * 11, i ? C.white : C.yellow)); }
+  const led = { HOME: [st.shift || (st.page === 'pat' && (st.compact || !!st.scope)), st.shift ? '#ffd34a' : '#4be38a'], REC: [st.rec, '#ff5a36'], PLAY: [st.playing, '#4be38a'], SEQ: [st.page === 'seq', '#4be38a'], GLO: [st.page === 'glo' || st.page === 'file', st.page === 'file' ? '#ffd34a' : '#4be38a'], ENV: [st.page === 'ins', '#4be38a'], 
+    SEL: [st.page === 'ins' && st.op === 1, '#4be38a'], FX: [st.page === 'pat' && st.field >= 2, st.field === 3 ? '#ffd34a' : '#4be38a'], LFO: [!!song.lfo, '#4be38a'], ARP: [st.page === 'mac', { arp: '#ffd34a', vib: '#ff55ff', reg: '#55ffff' }[st.mk]], SAVE: [performance.now() - st.msgT < 600 && st.msg === 'SAVED', '#ffd34a'], 'OCT−': [st.oct < 4, '#ffd34a'], 'OCT+': [st.oct > 4, '#ffd34a'] };
+  dev.querySelectorAll('.btn').forEach(b => { const v = led[b.dataset.n], el = b.querySelector('b'); el.classList.toggle('lit', !!(v && v[0])); if (v) el.style.setProperty('--led', v[1]); });
+  kb.querySelectorAll('span').forEach((el, j) => el.textContent = 'C' + (st.oct + j));
+  const pk = playKey() - base(); kb.querySelectorAll('.k').forEach(el => el.classList.toggle('play', +el.dataset.o === pk));
+  const nmode = st.nw; if (nmode !== lastNmode) { lastNmode = nmode; kb.querySelectorAll('.k').forEach(el => el.querySelector('em').textContent = nmode ? (KCH[el.dataset.o] || '').replace(' ', '␣') : ''); }
+  $('#oct').textContent = `KEYS ${noteName(base()).replace('-', '')}–${noteName(base() + 26).replace('-', '')} · OCT ${sgn(st.oct - 4)}`;
+  requestAnimationFrame(frame);
+}
+applySettings(); st.compact = S.homev === '9CH';
+/* tests/t44.cjs (the C screen against this one): the page opened with #uitest */
+if (location.hash === '#uitest') window.__ui = { st, S, mute, meter, get song() { return song; }, knob, press, btnDown, btnUp, noteDown, noteUp, homeTap, openFxPicker, applySettings, frame,
+  keyDown: o => { if (st.shift) { st.used = true; noteOffEntry(); return; } return noteDown(base() + o, 'p' + o); }, keyUp: o => noteUp('p' + o),
+  setSong: s => { song = normSong(s); sendSong(); } };
+['pointerdown', 'keydown', 'wheel'].forEach(ev => document.addEventListener(ev, wake, true));
+document.fonts && document.fonts.load('500 8px "IBM Plex Mono"').catch(() => {});
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
