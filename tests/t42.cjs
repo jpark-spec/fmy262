@@ -101,7 +101,7 @@ const FUZZ = +(process.env.FUZZ || 150);
 for (let i = 0; i < FUZZ; i++) cases.push({ name: 'fuzz' + i, song: fuzzSong(), sec: 8 });
 if (process.env.AT2_MODULES) {
   const files = cp.execSync(`find ${process.env.AT2_MODULES} -name '*.a2m'`).toString().trim().split('\n').filter(Boolean);
-  for (const f of files) { try { cases.push({ name: path.basename(f), song: X.importA2M(new Uint8Array(fs.readFileSync(f))).song, sec: 20 }); } catch (e) {} }
+  for (const f of files) { try { cases.push({ name: path.basename(f), song: X.importA2M(new Uint8Array(fs.readFileSync(f))).song, sec: +(process.env.AT2_SEC || 20) }); } catch (e) {} }
 }
 
 const fmyFail = []; let fmyOK = 0, fmyBig = 0;

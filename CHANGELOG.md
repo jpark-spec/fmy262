@@ -2,6 +2,19 @@
 
 Versions: 0.N is a large step closed by tests or measurements on the device, 0.N.x the work in between.
 
+## 0.8.3 — closer to Adlib Tracker II, part 2
+
+More of AT2's player, from its source (Sawtooth Quiet in Corridor, Super Market). Import AT2 songs again in the
+workbench to get the fixes; songs imported with 0.8.1 also lack every key-off (fixed in 0.8.2), so their notes
+run into each other.
+
+- vibrato and tremolo keep their place across new notes and start over only on a row without the effect, as in AT2
+- FM register macros: the level columns are read as AT2 stores them (63 minus the level); A2M export writes them
+  the same way (A2M files from FMY262 0.8.2 and before still read right)
+- an instrument number without a note resets the channel's volume to the instrument's, as in AT2 (not with volume
+  lock on the same instrument)
+- tests: the AdPlug comparison also checks key-offs written inside a tick
+
 ## 0.8.2 — songs play as in Adlib Tracker II
 
 Imported Adlib Tracker II songs now play much closer to AT2 itself (checked tick by tick against AdPlug's AT2

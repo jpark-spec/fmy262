@@ -69,7 +69,7 @@ class Engine {
     tl(r.m, ins.op[0], mv, dv); tl(r.c, ins.op[1], cv, dv);
   }
   /* a note's starting volume: full, or with AT2's volume scaling off the instrument's own levels */
-  volInit(c) { const s = this.ch[c], ins = this.song && this.song.vdir && this.pairHi(c) < 0 && !this.pairLo(c) ? this.insOf(c) : null;
+  volInit(c) { const s = this.ch[c], ins = this.song && this.song.vdir && this.pairHi(c) < 0 && !this.pairLo(c) ? (s.patch && !s.own ? s.patch : this.song.inst[s.inst - 1]) : null;
     s.vol = ins ? 63 - ins.op[this.drum(c) > 0 ? 0 : 1].tl : 63; s.mvol = ins ? 63 - ins.op[0].tl : 63; }
   setFreq(c, semis) {
     const s = this.ch[c], ins = this.insOf(c);
@@ -84,7 +84,7 @@ class Engine {
   keyOff(c) { const s = this.ch[c], r = this.regs(this.fch(c)), d = this.drum(c); s.on = false; s.pend = false; if (r.k < 0) return;
     if (d >= 0) { this.bd &= ~this.DRUM[d]; this.w(0xBD, this.bd); } else this.w(0xB0 + r.k, (s.blk << 2) | (s.fn >> 8)); }
   trigger(c, note, keep) {
-    const s = this.ch[c]; s.pitch = note; s.base = note; s.vbase = note; s.had = true; s.fxo = 0; s.vibo = 0; s.tro = 0; s.tmute = false; s.vpos = 0; s.tpos = 0; s.ftn = 0;
+    const s = this.ch[c]; s.pitch = note; s.base = note; s.vbase = note; s.had = true; s.fxo = 0; s.vibo = 0; s.tro = 0; s.tmute = false; s.ftn = 0;
     s.ap = 0; s.ac = 0; s.vp = 0; s.vc = 0; s.vd = 0; s.arpOv = -1; s.vibOv = -1; if (!keep) { s.mp = 0; s.md = 0; s.zero = false; }
     if (!this.loadInst(c)) return false;
     this.keyOff(c); this.setFreq(c, note);
@@ -126,7 +126,9 @@ class Engine {
     const P = this.own(c), D = st.d, X = M.dis, en = j => !X[j]; if (!P) return;
     [0, 1].forEach(j => { const o = P.op[j], q = j * 12, a = D[j], kv = D[2 + j], ad = D[4 + j], sr = D[6 + j];
       if (en(q)) o.ar = ad >> 4; if (en(q + 1)) o.dr = ad & 15; if (en(q + 2)) o.sl = sr >> 4; if (en(q + 3)) o.rr = sr & 15; if (en(q + 4)) o.ws = D[8 + j] & 7;
-      if (en(q + 5)) o.tl = kv & 63; if (en(q + 6)) o.ksl = kv >> 6; if (en(q + 7)) o.mult = a & 15; if (en(q + 8)) o.am = a >> 7; if (en(q + 9)) o.vib = a >> 6 & 1; if (en(q + 10)) o.ksr = a >> 4 & 1; if (en(q + 11)) o.egt = a >> 5 & 1; });
+      /* AT2 set_ins_volume from a macro level: the carrier's and (additive, or volume scaling off) the modulator's
+         become the channel volume; an FM modulator's is its TL */
+      if (en(q + 5)) { if (j) s.vol = 63 - (kv & 63); else if (this.song.vdir || P.con) s.mvol = 63 - (kv & 63); else o.tl = kv & 63; } if (en(q + 6)) o.ksl = kv >> 6; if (en(q + 7)) o.mult = a & 15; if (en(q + 8)) o.am = a >> 7; if (en(q + 9)) o.vib = a >> 6 & 1; if (en(q + 10)) o.ksr = a >> 4 & 1; if (en(q + 11)) o.egt = a >> 5 & 1; });
     if (en(24)) P.con = D[10] & 1; if (en(25)) P.fb = D[10] >> 1 & 7; if (en(27) && s.plock !== 1) s.panOv = [1, 0, 2][st.pan] ?? 1;
     this.loadInst(c);
     if (D[10] & 0x80) { this.trigger(c, s.base, true); }
@@ -145,15 +147,20 @@ class Engine {
         s.fxo = 0; s.vibo = 0; if (s.tro) { s.tro = 0; this.setVol(c); }
         s.e = []; if (cell[2] >= 0) s.e.push([cell[2], cell[3]]); if (cell[4] >= 0) s.e.push([cell[4], cell[5]]);
         const has = f => s.e.find(e => e[0] === f), ext = (f, hi) => s.e.find(e => e[0] === f && e[1] >> 4 === hi);
+        /* AT2: the vibrato and tremolo positions restart only on a row without such an effect, not on a new note */
+        if (!s.e.some(([f]) => f === 4 || f === 6 || f === 17 || f === 43)) s.vpos = 0; if (!s.e.some(([f]) => f === 22 || f === 44)) s.tpos = 0;
         s.fineV = !!ext(35, 15) && (ext(35, 15)[1] & 15) === 13; s.fineT = !!ext(35, 15) && (ext(35, 15)[1] & 15) === 14;
-        if (cell[1] > 0) s.inst = cell[1];
+        /* AT2 set_ins_data: an instrument number (with or without a note) resets the volume, unless locked on the same
+           instrument; a bare note keeps it */
+        let vr = false, tg = false; if (cell[1] > 0) { const same = s.inst === cell[1]; s.inst = cell[1]; if (!same) { s.patch = null; s.own = false; } if (!s.vlock || !same) { this.volInit(c); vr = true; } }
         const pe = has(3) || has(5) || has(16), nd = ext(36, 2);
         if (pe) { if (has(3) && has(3)[1]) s.pspd = has(3)[1]; if (cell[0] >= 0) s.ptgt = cell[0]; }
         if (cell[0] >= 0 && nd && (nd[1] & 15)) { s.nd = nd[1] & 15; s.ndn = cell[0]; }
         else if (cell[0] >= 0 && pe && (s.on || s.pend)) { /* tone portamento: glide, no retrigger */ }
         else if (cell[0] >= 0) { /* AT2: tone portamento after a key-off sounds the old note again and glides from there */
-          const pk = !!pe && s.had; s.patch = null; s.own = false; if (!s.vlock) this.volInit(c); if (s.plock !== 1) s.panOv = -1; if (this.trigger(c, pk ? s.base : cell[0], pk)) trig.push(c); }
+          const pk = !!pe && s.had; s.patch = null; s.own = false; tg = true; if (s.plock !== 1) s.panOv = -1; if (this.trigger(c, pk ? s.base : cell[0], pk)) trig.push(c); }
         else if (cell[0] === -2) this.keyOff(c);
+        if (vr && !tg) this.loadInst(c);
         let noRestart = !!ext(35, 15) && (ext(35, 15)[1] & 15) === 15;
         for (const [f, v] of s.e) { const x = v >> 4, y = v & 15;
           switch (f) {
@@ -228,7 +235,7 @@ class Engine {
   doFx(xf) {
     for (let c = 0; c < 20; c++) { const s = this.ch[c]; if (!this.active(c)) continue;
       if (!s.e.length && this.gsl[c]) this.pslide(c, this.gsl[c][1], this.gsl[c][0]);
-      if (s.nd >= 0) { if (s.nd === 0) { s.nd = -1; s.patch = null; s.own = false; if (!s.vlock) this.volInit(c); this.trigger(c, s.ndn); } else s.nd--; }
+      if (s.nd >= 0) { if (s.nd === 0) { s.nd = -1; s.patch = null; s.own = false; this.trigger(c, s.ndn); } else s.nd--; }
       if (s.nc >= 0) { if (s.nc === 0) { s.nc = -1; this.keyOff(c); } else s.nc--; }
       for (const [f, v] of s.e) { const x = v >> 4, y = v & 15;
         switch (f) {

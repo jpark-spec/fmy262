@@ -15,6 +15,6 @@
     "binaryen": "116.0.0",
     "puppeteer-core": "^23.11.1"
   },
-  "version": "0.8.2",
+  "version": "0.8.3",
   "license": "GPL-2.0-or-later"
 }

@@ -201,7 +201,7 @@ static void setVol(Eng *e, int c)
 static void volInit(Eng *e, int c)
 {
     EngCh *s = &e->ch[c];
-    const EngIns *ins = e->song && e->song->vdir && pairHi(e, c) < 0 && !pairLo(e, c) ? insOf(e, c) : 0;
+    const EngIns *ins = e->song && e->song->vdir && pairHi(e, c) < 0 && !pairLo(e, c) ? (s->patch && !s->own ? s->patch : songIns(e, s->inst)) : 0;
     s->vol = (int16_t)(ins ? 63 - ins->op[drum(e, c) > 0 ? 0 : 1].tl : 63); s->mvol = (int16_t)(ins ? 63 - ins->op[0].tl : 63);
 }
 
@@ -248,7 +248,7 @@ static void keyOff(Eng *e, int c)
 static int trigger(Eng *e, int c, int note, int keep)
 {
     EngCh *s = &e->ch[c];
-    s->pitch = note; s->base = (int16_t)note; s->vbase = note; s->had = 1; s->fxo = 0; s->vibo = 0; s->tro = 0; s->tmute = 0; s->vpos = 0; s->tpos = 0;
+    s->pitch = note; s->base = (int16_t)note; s->vbase = note; s->had = 1; s->fxo = 0; s->vibo = 0; s->tro = 0; s->tmute = 0;
     s->ftn = 0; s->ap = 0; s->ac = 0; s->vp = 0; s->vc = 0; s->vd = 0; s->arpOv = -1; s->vibOv = -1;
     if (!keep) { s->mp = 0; s->md = 0; s->zero = 0; }
     if (!loadInst(e, c)) return 0;
@@ -399,7 +399,9 @@ static void fmMacro(Eng *e, int c)
         if (EN(q + 2)) o->sl = (uint8_t)(sr >> 4);
         if (EN(q + 3)) o->rr = sr & 15;
         if (EN(q + 4)) o->ws = D[8 + j] & 7;
-        if (EN(q + 5)) o->tl = kv & 63;
+        /* AT2 set_ins_volume from a macro level: the carrier's and (additive, or volume scaling off) the
+           modulator's become the channel volume; an FM modulator's is its TL */
+        if (EN(q + 5)) { if (j) s->vol = (int16_t)(63 - (kv & 63)); else if (e->song->vdir || P->con) s->mvol = (int16_t)(63 - (kv & 63)); else o->tl = kv & 63; }
         if (EN(q + 6)) o->ksl = (uint8_t)(kv >> 6);
         if (EN(q + 7)) o->mult = a & 15;
         if (EN(q + 8)) o->am = (uint8_t)(a >> 7);
@@ -510,7 +512,7 @@ static void doRow(Eng *e)
             EngCh *s = &e->ch[c];
             EngCell cell;
             uint8_t prev[2];
-            int np, i, pe, nd, noRestart, fv;
+            int np, i, pe, nd, noRestart, fv, vr, tg;
             if (!active(e, c) || pairLo(e, c)) continue;
             S->cell(S, p, e->row, c, &cell);
             np = s->ne; prev[0] = s->ef[0]; prev[1] = s->ef[1];
@@ -529,9 +531,20 @@ static void doRow(Eng *e)
             s->ne = 0;
             for (i = 0; i < 2; i++)
                 if (cell.fx[i] >= 0) { s->ef[s->ne] = (uint8_t)cell.fx[i]; s->ev[s->ne] = cell.v[i]; s->ne++; }
+            /* AT2: the vibrato and tremolo positions restart only on a row without such an effect, not on a new note */
+            if (has(s, 4) < 0 && has(s, 6) < 0 && has(s, 17) < 0 && has(s, 43) < 0) s->vpos = 0;
+            if (has(s, 22) < 0 && has(s, 44) < 0) s->tpos = 0;
             fv = ext(s, 35, 15);
             s->fineV = fv >= 0 && (s->ev[fv] & 15) == 13; s->fineT = fv >= 0 && (s->ev[fv] & 15) == 14;
-            if (cell.ins > 0) s->inst = cell.ins;
+            /* AT2 set_ins_data: an instrument number (with or without a note) resets the volume, unless locked on the
+               same instrument; a bare note keeps it */
+            vr = 0; tg = 0;
+            if (cell.ins > 0) {
+                int same = s->inst == cell.ins;
+                s->inst = cell.ins;
+                if (!same) { s->patch = 0; s->own = 0; }
+                if (!s->vlock || !same) { volInit(e, c); vr = 1; }
+            }
             pe = has(s, 3) >= 0 || has(s, 5) >= 0 || has(s, 16) >= 0; nd = ext(s, 36, 2);
             if (pe) {
                 int h3 = has(s, 3);
@@ -543,12 +556,12 @@ static void doRow(Eng *e)
             else if (cell.note >= 0) {
                 /* AT2: tone portamento after a key-off sounds the old note again and glides from there */
                 int pk = pe && s->had;
-                s->patch = 0; s->own = 0;
-                if (!s->vlock) volInit(e, c);
+                s->patch = 0; s->own = 0; tg = 1;
                 if (s->plock != 1) s->panOv = -1;
                 if (trigger(e, c, pk ? s->base : cell.note, pk)) trig |= 1u << c;
             }
             else if (cell.note == -2) keyOff(e, c);
+            if (vr && !tg) loadInst(e, c);
             noRestart = fv >= 0 && (s->ev[fv] & 15) == 15;
             for (i = 0; i < s->ne; i++) {
                 int f = s->ef[i], v = s->ev[i], x = v >> 4, y = v & 15, k;
@@ -611,7 +624,6 @@ static void doFx(Eng *e, int xf)
         if (s->nd >= 0) {
             if (s->nd == 0) {
                 s->nd = -1; s->patch = 0; s->own = 0;
-                if (!s->vlock) volInit(e, c);
                 trigger(e, c, s->ndn, 0);
             } else s->nd--;
         }

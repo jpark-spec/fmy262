@@ -76,7 +76,7 @@ function a2mSongdata(song) {
     b[o + 11] = [1, 0, 2][ins.pan]; b[o + 12] = Math.round((ins.ft || 0) * 0.28) & 255;
     const mo = A2.O_IMAC + k * A2.REGT; b[mo + 4] = ins.arpT || 0; b[mo + 5] = ins.vibT || 0; b[o + 13] = ins.pv || 0;
     const M = ins.fmm; if (M && M.len) { b[mo] = M.len; b[mo + 1] = M.lb; b[mo + 2] = M.ll; b[mo + 3] = M.ko;
-      M.steps.slice(0, M.len).forEach((s, i) => { const q = mo + 6 + i * 15; b.set(s.d, q); b[q + 11] = s.fs & 255; b[q + 12] = s.fs >> 8 & 255; b[q + 13] = s.pan; b[q + 14] = s.dur; });
+      M.steps.slice(0, M.len).forEach((s, i) => { const q = mo + 6 + i * 15; b.set(s.d, q); /* AT2 keeps a macro step's levels as 63 - TL */ for (const j of [2, 3]) b[q + j] = s.d[j] & 0xC0 | (63 - (s.d[j] & 63)); b[q + 11] = s.fs & 255; b[q + 12] = s.fs >> 8 & 255; b[q + 13] = s.pan; b[q + 14] = s.dur; });
       M.dis.forEach((v, j) => b[A2.O_DIS + k * 28 + j] = v ? 1 : 0); }
   });
   const f4 = song.inst.map((x, k) => x.four ? k + 1 : 0).filter(Boolean).slice(0, 128); b[A2.O_I4] = f4.length; f4.forEach((n, i) => b[A2.O_I4 + 1 + i] = n);
@@ -103,7 +103,7 @@ function a2mSongdata(song) {
   for (let t = 0; t < 16; t++) { const A = song.arp[t], V = song.vib[t];
     for (let k = 0; k < 16; k++) { b[x + 78 + t * 16 + k] = (A ? A.data[k] : 0) & 255; b[x + 334 + t * 16 + k] = (V ? V.data[k] : 0) & 255; }
     putStr(b, x + 590 + t * 10, A && A.name || '', 9); putStr(b, x + 750 + t * 10, V && V.name || '', 9); }
-  b[x + 912] = 0xA5; b[x + 913] = song.opl === 2 ? 2 : 3; b[x + 914] = song.gvol === undefined ? 63 : song.gvol; b[x + 915] = song.vtab || 0; b[x + 916] = 0xA0 | (song.vdir ? 1 : 0);
+  b[x + 912] = 0xA5; b[x + 913] = song.opl === 2 ? 2 : 3; b[x + 914] = song.gvol === undefined ? 63 : song.gvol; b[x + 915] = song.vtab || 0; b[x + 916] = 0xB0 | (song.vdir ? 1 : 0); /* B0: macro levels as AT2 (A0 = 0.8.2, which wrote them as TL) */
   return b;
 }
 function a2mPatternBlock(song, blk) {
@@ -248,6 +248,8 @@ function importA2M(bytes) {
   const u16 = o => sd[o] | sd[o + 1] << 8, s8 = v => v > 127 ? v - 256 : v;
   const rows = Math.max(1, Math.min(256, u16(A2.O_PLEN) || 64)), ntr = sd[A2.O_NTRK] || 18;
   const x = A2.O_RES, hasX = String.fromCharCode(...sd.subarray(x, x + 4)) === 'FM1X';
+  /* AT2 keeps macro step levels as 63 - TL; FMY262 before 0.8.3 wrote TL there */
+  const lvlAT2 = !hasX || (sd[x + 916] & 0xF0) === 0xB0;
   const xI = hasX && new DataView(sd.buffer).getUint32(x + 6, true) === crcUpd(sd.subarray(A2.O_INS, A2.O_INS + 255 * A2.INS), 0xFFFFFFFF);
   const xM = hasX && new DataView(sd.buffer).getUint32(x + 10, true) === crcUpd(sd.subarray(A2.O_MAC, A2.O_MAC + 16 * A2.MAC), 0xFFFFFFFF);
   /* order */
@@ -284,7 +286,7 @@ function importA2M(bytes) {
       arpT: sd[mo + 4] <= 16 ? sd[mo + 4] : 0, vibT: sd[mo + 5] <= 16 ? sd[mo + 5] : 0,
       op: [op(f[0], f[2], f[4], f[6], f[8]), op(f[1], f[3], f[5], f[7], f[9])], pv: sd[o + 13] || 0,
       fmm: sd[mo] ? { len: sd[mo], lb: sd[mo + 1], ll: sd[mo + 2], ko: sd[mo + 3], dis: [...sd.subarray(A2.O_DIS + k * 28, A2.O_DIS + k * 28 + 28)].map(v => !!v),
-        steps: [...Array(sd[mo])].map((_, i) => { const q = mo + 6 + i * 15; return { d: [...sd.subarray(q, q + 11)], fs: (sd[q + 11] | sd[q + 12] << 8) << 16 >> 16, pan: sd[q + 13], dur: sd[q + 14] }; }) } : undefined });
+        steps: [...Array(sd[mo])].map((_, i) => { const q = mo + 6 + i * 15; const d = [...sd.subarray(q, q + 11)]; if (lvlAT2) for (const j of [2, 3]) d[j] = d[j] & 0xC0 | (63 - (d[j] & 63)); return { d, fs: (sd[q + 11] | sd[q + 12] << 8) << 16 >> 16, pan: sd[q + 13], dur: sd[q + 14] }; }) } : undefined });
     if (sd[mo + 4] > 16 || sd[mo + 5] > 16) warn.push('MACRO TABLES ABOVE 16 DROPPED'); }
   for (let i = 0; i < Math.min(128, sd[A2.O_I4]); i++) { const n = sd[A2.O_I4 + 1 + i]; if (inst[n - 1] && inst[n]) inst[n - 1].four = true; }
   /* macro tables */
@@ -304,6 +306,6 @@ function importA2M(bytes) {
     rows, order, patterns, inst, arp, vib, lfo: (flags >> 4 & 1) | (flags >> 3 & 1) << 1,
     perc: !!(flags >> 6 & 1), mspd: Math.max(1, Math.min(8, u16(A2.O_MSPD) || 1)), four: sd[A2.O_NTRK + 3] & 63, opl: hasX && sd[x + 912] === 0xA5 ? sd[x + 913] : 3, gvol: hasX && sd[x + 912] === 0xA5 ? Math.min(63, sd[x + 914]) : 63, vtab: hasX && sd[x + 912] === 0xA5 ? sd[x + 915] : 0,
     /* AT2 volume scaling off: volumes are levels (FMY262's own files before 0.8.2 had no mark and always scaled) */
-    vdir: hasX ? ((sd[x + 916] & 0xF0) === 0xA0 ? sd[x + 916] & 1 : 0) : flags >> 7 & 1 ? 0 : 1 };
+    vdir: hasX ? ((sd[x + 916] & 0xE0) === 0xA0 ? sd[x + 916] & 1 : 0) : flags >> 7 & 1 ? 0 : 1 };
   return { song: normSong(song), ver, warn: [...new Set(warn)] };
 }
