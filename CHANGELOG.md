@@ -1,12 +1,8 @@
 # Changelog
 
-Versions: 0.N is a large step closed by tests or measurements on the device, 0.N.x the work in between.
+## 0.8.3 — Minor A2M Import Update
 
-## 0.8.3 — closer to Adlib Tracker II, part 2
-
-More of AT2's player, from its source (Sawtooth Quiet in Corridor, Super Market). Import AT2 songs again in the
-workbench to get the fixes; songs imported with 0.8.1 also lack every key-off (fixed in 0.8.2), so their notes
-run into each other.
+Import AT2 songs again in the workbench to get the fixes; songs imported with 0.8.1 also lack every key-off (fixed in 0.8.2), so their notes run into each other.
 
 - vibrato and tremolo keep their place across new notes and start over only on a row without the effect, as in AT2
 - FM register macros: the level columns are read as AT2 stores them (63 minus the level); A2M export writes them
@@ -15,7 +11,7 @@ run into each other.
   lock on the same instrument)
 - tests: the AdPlug comparison also checks key-offs written inside a tick
 
-## 0.8.2 — songs play as in Adlib Tracker II
+## 0.8.2 — Engine Logic Update
 
 Imported Adlib Tracker II songs now play much closer to AT2 itself (checked tick by tick against AdPlug's AT2
 player). Import songs again in the workbench to get the fixes.
@@ -30,7 +26,7 @@ player). Import songs again in the workbench to get the fixes.
 - RAD import: the tuning is now in the engine instead of each instrument's fine tune
 - song files: version 2 for songs with volume scaling off (version 1 files still read)
 
-## 0.8.1 — first public release
+## 0.8 — First public release
 
 FMY262 is an OPL3 (YMF262) tracker that runs on the M-VAVE FM-1 as custom firmware, with a workbench web page to
 install it, move songs over USB and try it in the browser.
